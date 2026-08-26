@@ -1,9 +1,9 @@
-import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 import fuellib as fl
+from fuellib.utils.units import ureg
 
 # -----------------------------------------------------------------------------
 # Calculate mixture properties from the group contribution properties
@@ -80,19 +80,15 @@ ylab = {
 
 def getPredAndData(fuel_name, prop_name):
     # Get the fuel properties based on the GCM
-    fuel = fl.Fuel(fuel_name)
+    fuel = fl.Fuel.from_name(fuel_name)
 
-    data_file = f"{fuel_name}.csv"
     try:
-        data = pd.read_csv(
-            os.path.join(fl.get_fueldata_props_dir(), data_file), skiprows=[1]
-        )
-        # Separate properties and associated temperatures from data
-        T_data = data.Temperature[data[prop_name].notna()]
-        prop_data = data[prop_name].dropna()
+        T_q, values_q = fl.fuel.experimental_property(fuel, prop_name)
+        T_data = pd.Series(T_q.to("degC").magnitude)
+        prop_data = pd.Series(values_q.magnitude)
         # Vectors for temperature (convert from C to K)
         T_pred = fl.convert.C2K(np.linspace(min(T_data), max(T_data), 100))
-    except (FileNotFoundError, KeyError):
+    except KeyError:
         # If propertyData is not found, set temp min/max from xticks_posf
         T_data = pd.Series(dtype=float)
         prop_data = pd.Series(dtype=float)
@@ -105,29 +101,30 @@ def getPredAndData(fuel_name, prop_name):
 
     for i in range(0, len(T_pred)):
         Y_li = fuel.Y_0
+        T_q = T_pred[i] * ureg.K
 
         if prop_name == "Density":
-            # Mixture density (returns rho in kg/m^3)
-            pred[i] = fuel.mixture_density(Y_li, T_pred[i])
-            # Convert density to CGS (g/cm^3)
-            pred[i] *= 1.0e-03
+            # Mixture density, converted to CGS (g/cm^3)
+            pred[i] = fl.fuel.mixture_density(fuel, Y_li, T_q).to("g/cm**3").magnitude
 
         if prop_name == "VaporPressure":
-            # Mixture vapor pressure (returns pv in Pa)
-            pred[i] = fuel.mixture_vapor_pressure(Y_li, T_pred[i])
-            # Convert vapor pressure to kPa
-            pred[i] *= 1.0e-03
+            # Mixture vapor pressure, converted to kPa
+            pred[i] = fl.fuel.mixture_vapor_pressure(fuel, Y_li, T_q).to("kPa").magnitude
 
         if prop_name == "Viscosity":
-            pred[i] = fuel.mixture_kinematic_viscosity(Y_li, T_pred[i])
-            # Convert viscosity to mm^2/s
-            pred[i] *= 1.0e06
+            pred[i] = (
+                fl.fuel.mixture_kinematic_viscosity(fuel, Y_li, T_q)
+                .to("mm**2/s")
+                .magnitude
+            )
 
         if prop_name == "SurfaceTension":
-            pred[i] = fuel.mixture_surface_tension(Y_li, T_pred[i])
+            pred[i] = fl.fuel.mixture_surface_tension(fuel, Y_li, T_q).to("N/m").magnitude
 
         if prop_name == "ThermalConductivity":
-            pred[i] = fuel.mixture_thermal_conductivity(Y_li, T_pred[i])
+            pred[i] = (
+                fl.fuel.mixture_thermal_conductivity(fuel, Y_li, T_q).to("W/m/K").magnitude
+            )
 
     return T_data, prop_data, T_pred, pred
 

@@ -14,7 +14,7 @@ FuelLib File Organization
 
     - ``fuel.py``: core :class:`fuel` class for Group Contribution Method calculations
     - ``constants.py``: physical constants (Boltzmann, Avogadro)
-    - ``convert.py``: temperature conversion functions and Lennard-Jones calculations
+    - ``convert.py``: Lennard-Jones well depth to characteristic temperature conversion
     - ``utility.py``: utility functions for mixture properties and droplet calculations
     - ``_data_locator.py``: internal module for locating and validating fuel data directories
     
@@ -33,7 +33,6 @@ FuelLib File Organization
 
     - **cli:** subpackage with command-line interface tools for data conversion and analysis
     
-        - ``temp_converter.py``: temperature conversion utilities
         - ``transport_props_converter.py``: transport properties conversion utilities
         - ``plotting.py``: plotting utilities for composition and properties
         - ``fuel_manager.py``: fuel manager utility

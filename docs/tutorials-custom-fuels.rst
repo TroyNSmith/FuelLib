@@ -96,7 +96,7 @@ Once your custom fuel directory is set up, you can use it like any built-in fuel
     # Calculate the saturated vapor pressure at 320 K
     T = 320  # K
     p_sat_i = fuel.psat(T)
-    p_sat_mix = fuel.mixture_vapor_pressure(fuel.Y_0, T)
+    p_sat_mix = fl.fuel.mixture_vapor_pressure(fuel, fuel.Y_0, T)
 
 Tips and Best Practices
 -----------------------

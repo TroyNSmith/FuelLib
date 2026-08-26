@@ -118,7 +118,7 @@ for each component and the mixture at a given temperature:
     # Calculate the saturated vapor pressure at 320 K
     T = 320 # K
     p_sat_i = fuel.psat(T)
-    p_sat_mix = fuel.mixture_vapor_pressure(T)
+    p_sat_mix = fl.fuel.mixture_vapor_pressure(fuel, T)
     print(f"Saturated vapor pressure at {T} K: {p_sat_i} Pa")
     print(f"Mixture saturated vapor pressure at {T} K: {p_sat_mix} Pa")
 

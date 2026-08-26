@@ -1,0 +1,20 @@
+{
+    "components": {
+        "n-C07": {
+            "weight_percent": 73.75,
+            "formula": "C7H16",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 5
+            }
+        },
+        "n-C10": {
+            "weight_percent": 26.25,
+            "formula": "C10H22",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 8
+            }
+        }
+    }
+}

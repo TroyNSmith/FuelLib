@@ -41,16 +41,8 @@ The first two commands provide the following plots for the specified fuels, whil
 Unit Conversion Tools
 ~~~~~~~~~~~~~~~~~~~~~~
 
-**Temperature Conversion**
-
-.. code-block:: bash
-
-    fl-C2K 25                    # Celsius to Kelvin
-    fl-K2C 298.15                # Kelvin to Celsius
-    fl-C2F 25                    # Celsius to Fahrenheit
-    fl-F2C 77                    # Fahrenheit to Celsius
-    fl-F2K 77                    # Fahrenheit to Kelvin
-    fl-K2F 298.15                # Kelvin to Fahrenheit
+For general unit conversions (including temperature), use `pint <https://pint.readthedocs.io>`_
+directly, e.g. ``fuellib.utils.units.Q_(25, "degC").to("K")``.
 
 **Lennard-Jones Parameters**
 

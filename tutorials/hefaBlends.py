@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import fuellib as fl
+from fuellib.utils.units import ureg
 
 # -----------------------------------------------------------------------------
 # Calculate mixture properties from the group contribution properties
@@ -56,8 +57,8 @@ def getPredAndData(fuel_name, prop_name, blend):
     blend = np.array(blend) * 1e-2  # Convert to weight percent
 
     # Get the fuel properties based on the GCM
-    fuel = fl.Fuel(fuel_name, "hefa")
-    jetA = fl.Fuel(conv_fuel_name)
+    fuel = fl.Fuel.from_name(fuel_name)
+    jetA = fl.Fuel.from_name(conv_fuel_name)
 
     data_file = "hefa-jet-a-blends.csv"
     data = pd.read_csv(
@@ -69,9 +70,9 @@ def getPredAndData(fuel_name, prop_name, blend):
 
     # Separate properties and associated temperatures from data
     if prop_name == "Density":
-        T = fl.convert.C2K(15)
+        T = fl.convert.C2K(15) * ureg.K
     elif prop_name == "Viscosity":
-        T = fl.convert.C2K(-20)
+        T = fl.convert.C2K(-20) * ureg.K
 
     # Vector for FuelLib predictions
     prop_pred = np.zeros_like(blend)
@@ -81,20 +82,18 @@ def getPredAndData(fuel_name, prop_name, blend):
         Y_li = blend[i] * fuel.Y_0 + (1 - blend[i]) * jetA.Y_0
 
         if prop_name == "Density":
-            # Mixture density (returns rho in kg/m^3)
-            prop_pred[i] = fuel.mixture_density(Y_li, T)
-            # Convert density to CGS (g/cm^3)
-            prop_pred[i] *= 1.0e-03
+            # Mixture density, converted to CGS (g/cm^3)
+            prop_pred[i] = fl.fuel.mixture_density(fuel, Y_li, T).to("g/cm**3").magnitude
 
         if prop_name == "Viscosity":
             # initial liquid mass fractions
             Y_li = blend[i] * fuel.Y_0 + (1 - blend[i]) * jetA.Y_0
 
-            prop_pred[i] = fuel.mixture_kinematic_viscosity(Y_li, T)
-            # Convert viscosity to mm^2/s
-            prop_pred[i] *= 1.0e06
+            prop_pred[i] = (
+                fl.fuel.mixture_kinematic_viscosity(fuel, Y_li, T).to("mm**2/s").magnitude
+            )
 
-    return T, prop_data, blend_data, prop_pred
+    return T.to("K").magnitude, prop_data, blend_data, prop_pred
 
 
 figW = 5.25 * len(prop_names)

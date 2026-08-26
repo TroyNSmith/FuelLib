@@ -32,6 +32,7 @@ class ConstantinouMethod(BaseMethod):
             "CpBk": "joule / mole / kelvin",
             "CpCk": "joule / mole / kelvin",
             "MW": "gram / mole",
+            "carbons": "dimensionless",
         }
 
     def load_groups(self) -> None:
@@ -61,10 +62,10 @@ class ConstantinouMethod(BaseMethod):
 
         groups, counts = zip(*comp.decomposition)
 
-        return np.repeat(
+        return ureg(self._contributions[property_name]) * np.repeat(
             self.groups.loc[property_name, list(groups)].to_numpy(dtype=float),
             counts,
-        ) * ureg(self._contributions[property_name])
+        )
 
     def _sum_contributions(self, comp: Component, property_name: str) -> Quantity:
         """Sum the contributions for a property (equivalent to Nij @ property_k)."""
@@ -72,72 +73,74 @@ class ConstantinouMethod(BaseMethod):
 
     # --- Property calculation implementations ---
 
-    def calc_MW(self, comp: Component) -> Quantity:
+    def calc_molecular_weight(self, comp: Component) -> Quantity:
         """Calculate molecular weight in kg/mol."""
         mw = self._sum_contributions(comp, "MW")  # g/mol
         return mw.to("kg/mol")
 
-    def calc_Tc(self, comp: Component) -> Quantity:
+    def calc_critical_temperature(self, comp: Component) -> Quantity:
         """Calculate critical temperature in K."""
         tck_sum = self._sum_contributions(comp, "tck").magnitude
         return (181.128 * np.log(tck_sum)) * ureg.kelvin
 
-    def calc_Pc(self, comp: Component) -> Quantity:
+    def calc_critical_pressure(self, comp: Component) -> Quantity:
         """Calculate critical pressure in Pa."""
         pck_sum = self._sum_contributions(comp, "pck").magnitude  # bar^(-0.5)
         pc_bar = 1.3705 + (pck_sum + 0.10022) ** (-2)  # bar
         return (pc_bar * ureg.bar).to("Pa")
 
-    def calc_Vc(self, comp: Component) -> Quantity:
+    def calc_critical_volume(self, comp: Component) -> Quantity:
         """Calculate critical volume in m³/mol."""
         vck_sum = self._sum_contributions(comp, "vck")  # m^3/kmol
         vc = -0.00435 * ureg("m**3/kmol") + vck_sum
         return vc.to("m**3/mol")
 
-    def calc_Tb(self, comp: Component) -> Quantity:
+    def calc_boiling_temperature(self, comp: Component) -> Quantity:
         """Calculate boiling temperature in K."""
         tbk_sum = self._sum_contributions(comp, "tbk").magnitude
         return (204.359 * np.log(tbk_sum)) * ureg.kelvin
 
-    def calc_Tm(self, comp: Component) -> Quantity:
+    def calc_melting_temperature(self, comp: Component) -> Quantity:
         """Calculate melting temperature in K."""
         tmk_sum = self._sum_contributions(comp, "tmk").magnitude
         return (102.425 * np.log(tmk_sum)) * ureg.kelvin
 
-    def calc_Hf(self, comp: Component) -> Quantity:
+    def calc_enthalpy_of_formation(self, comp: Component) -> Quantity:
         """Calculate enthalpy of formation in J/mol."""
         hfk_sum = self._sum_contributions(comp, "hfk")  # kJ/mol
         hf = 10.835 * ureg("kJ/mol") + hfk_sum
         return hf.to("J/mol")
 
-    def calc_Gf(self, comp: Component) -> Quantity:
+    def calc_gibbs_free_energy(self, comp: Component) -> Quantity:
         """Calculate Gibbs free energy in J/mol."""
         gfk_sum = self._sum_contributions(comp, "gfk")  # kJ/mol
         gf = -14.828 * ureg("kJ/mol") + gfk_sum
         return gf.to("J/mol")
 
-    def calc_Hv_stp(self, comp: Component) -> Quantity:
+    def calc_enthalpy_of_vaporization_stp(self, comp: Component) -> Quantity:
         """Calculate enthalpy of vaporization at 298 K in J/mol."""
         hvk_sum = self._sum_contributions(comp, "hvk")  # kJ/mol
         hv = 6.829 * ureg("kJ/mol") + hvk_sum
         return hv.to("J/mol")
 
-    def calc_omega(self, comp: Component) -> Quantity:
+    def calc_acentric_factor(self, comp: Component) -> Quantity:
         """Calculate acentric factor (dimensionless)."""
         wk_sum = self._sum_contributions(comp, "wk").magnitude
         omega = 0.4085 * np.log(wk_sum + 1.1507) ** (1.0 / 0.5050)
         return omega * ureg.dimensionless
 
-    def calc_Vm_stp(self, comp: Component) -> Quantity:
+    def calc_molar_liquid_volume_stp(self, comp: Component) -> Quantity:
         """Calculate molar liquid volume at 298 K in m³/mol."""
         vmk_sum = self._sum_contributions(comp, "vmk")  # m^3/kmol
         vm = 0.01211 * ureg("m**3/kmol") + vmk_sum
         return vm.to("m**3/mol")
 
-    def calc_Cp_coeffs(self, comp: Component) -> tuple[Quantity, Quantity, Quantity]:
-        """Calculate specific heat coefficients (Cp_A, Cp_B, Cp_C) in J/mol/K.
+    def calc_heat_capacity_coeffs(
+        self, comp: Component
+    ) -> tuple[Quantity, Quantity, Quantity]:
+        """Calculate heat capacity coefficients (A, B, C) in J/mol/K.
 
-        Cp(T) = Cp_A + Cp_B * theta + Cp_C * theta^2
+        Cp(T) = A + B * theta + C * theta^2
         where theta = (T - 298) / 700
         """
         cpak_sum = self._sum_contributions(comp, "CpAk")  # J/mol/K
@@ -149,3 +152,7 @@ class ConstantinouMethod(BaseMethod):
         cp_c = cpck_sum
 
         return (cp_a, cp_b, cp_c)
+
+    def calc_carbon_number(self, comp: Component) -> Quantity:
+        """Calculate carbon number from alkyl/olefinic/aromatic group contributions."""
+        return self._sum_contributions(comp, "carbons")

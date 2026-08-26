@@ -1,78 +1,10 @@
-"""Unit conversion functions."""
+"""Unit conversion functions.
 
-from .constants import k_B, N_A
+Temperature conversions are handled by pint (see ``fuellib.utils.units``);
+this module only retains conversions outside pint's built-in unit system.
+"""
 
-
-def C2K(T):
-    """
-    Convert temperature from Celsius to Kelvin.
-
-    :param T: Temperature in Celsius.
-    :type T: float or np.ndarray
-    :return: Temperature in Kelvin.
-    :rtype: float or np.ndarray
-    """
-    return T + 273.15
-
-
-def K2C(T):
-    """
-    Convert temperature from Kelvin to Celsius.
-
-    :param T: Temperature in Kelvin.
-    :type T: float or np.ndarray
-    :return: Temperature in Celsius.
-    :rtype: float or np.ndarray
-    """
-    return T - 273.15
-
-
-def C2F(T):
-    """
-    Convert temperature from Celsius to Fahrenheit.
-
-    :param T: Temperature in Celsius.
-    :type T: float or np.ndarray
-    :return: Temperature in Fahrenheit.
-    :rtype: float or np.ndarray
-    """
-    return T * 9 / 5 + 32
-
-
-def F2C(T):
-    """
-    Convert temperature from Fahrenheit to Celsius.
-
-    :param T: Temperature in Fahrenheit.
-    :type T: float or np.ndarray
-    :return: Temperature in Celsius.
-    :rtype: float or np.ndarray
-    """
-    return (T - 32) * 5 / 9
-
-
-def F2K(T):
-    """
-    Convert temperature from Fahrenheit to Kelvin.
-
-    :param T: Temperature in Fahrenheit.
-    :type T: float or np.ndarray
-    :return: Temperature in Kelvin.
-    :rtype: float or np.ndarray
-    """
-    return C2K(F2C(T))
-
-
-def K2F(T):
-    """
-    Convert temperature from Kelvin to Fahrenheit.
-
-    :param T: Temperature in Kelvin.
-    :type T: float or np.ndarray
-    :return: Temperature in Fahrenheit.
-    :rtype: float or np.ndarray
-    """
-    return C2F(K2C(T))
+from .constants import N_A, k_B
 
 
 def epsilon_to_characteristic_temperature(epsilon_j_per_mol):
@@ -95,11 +27,5 @@ def epsilon_to_characteristic_temperature(epsilon_j_per_mol):
 
 
 __all__ = [
-    "C2K",
-    "K2C",
-    "C2F",
-    "F2C",
-    "F2K",
-    "K2F",
     "epsilon_to_characteristic_temperature",
 ]

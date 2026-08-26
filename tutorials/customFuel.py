@@ -1,36 +1,24 @@
 import fuellib as fl
 
 # Load an embedded fuel
-fuel = fl.Fuel("posf10264")
+fuel = fl.Fuel.from_name("posf10264")
 
 print(f"Fuel: {fuel.name}")
-print(f"Fuel data directory: {fuel.fuelDataDir}")
-print(f"GC data directory: {fuel.fuelDataGcDir}")
-print(f"Decomposition directory: {fuel.fuelDataDecompDir}")
-print(f"Properties directory: {fuel.fuelDataPropsDir}")
 print(f"Number of compounds: {fuel.num_compounds}")
 
-# To use a custom fuel, create a directory structure like:
+# To use a custom fuel, create a directory containing one "<name>.json" file per
+# fuel (see fuellib/data/fuelData/decane.json for the expected schema):
+#
 # customFuels/fuelData/
-#   ├── gcData/
-#   │   └── myFuel_init.csv
-#   ├── groupDecompositionData/
-#   │   └── myFuel.csv
-#   └── propertiesData/  (optional)
-#       └── myFuel.csv
+#   └── hefa-S1.json
 #
 # Then load it with:
-custom_fuel = fl.Fuel("hefa-S1", fuelDataDir="customFuels/fuelData")
+try:
+    custom_fuel = fl.Fuel.from_name("hefa-S1", fuel_data_dir="customFuels/fuelData")
 
-# After loading, the fuel object has the correct directory paths:
-custom_fuel.fuelDataDir
-custom_fuel.fuelDataGcDir
-custom_fuel.fuelDataDecompDir
-custom_fuel.fuelDataPropsDir
-
-print(f"\nFuel: {custom_fuel.name}")
-print(f"Fuel data directory: {custom_fuel.fuelDataDir}")
-print(f"GC data directory: {custom_fuel.fuelDataGcDir}")
-print(f"Decomposition directory: {custom_fuel.fuelDataDecompDir}")
-print(f"Properties directory: {custom_fuel.fuelDataPropsDir}")
-print(f"Number of compounds: {custom_fuel.num_compounds}")
+    print(f"\nFuel: {custom_fuel.name}")
+    print(f"Number of compounds: {custom_fuel.num_compounds}")
+except FileNotFoundError:
+    print(
+        "\n(Skipping custom fuel example: 'customFuels/fuelData/hefa-S1.json' not present)"
+    )

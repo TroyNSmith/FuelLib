@@ -5,9 +5,10 @@ This module provides tools for listing and discovering available fuels
 in the FuelLib database, including source information and metadata.
 """
 
-import os
 import argparse
+import os
 import warnings
+
 import fuellib as fl
 
 try:
@@ -70,7 +71,7 @@ def list_fuels_main():
         "--fuel_data_dir",
         default=None,
         metavar="PATH",
-        help="Directory containing fuel data (with gcData/, groupDecompositionData/, and fuel_metadata.yaml). "
+        help="Directory containing '<name>.json' fuel files and fuel_metadata.yaml. "
         "If not specified, uses embedded FuelLib data.",
     )
     parser.add_argument(
@@ -83,21 +84,20 @@ def list_fuels_main():
     args = parser.parse_args()
 
     if args.fuel_data_dir is None:
-        fuel_data_dir = fl.get_fueldata_gc_dir()
+        fuel_data_dir = fl.get_fueldata_dir()
         metadata_dir = None  # Use embedded metadata
     else:
-        fuel_data_dir = os.path.join(args.fuel_data_dir, "gcData")
+        fuel_data_dir = args.fuel_data_dir
         metadata_dir = args.fuel_data_dir  # Load metadata from same custom directory
 
     try:
-        # List all fuel files in the gcData directory
+        # List all fuel files in the fuel data directory
         if not os.path.exists(fuel_data_dir):
             print(f"Error: Fuel data directory not found: {fuel_data_dir}")
             exit(1)
 
-        # Extract fuel names from *_init.csv files
-        fuel_files = [f for f in os.listdir(fuel_data_dir) if f.endswith("_init.csv")]
-        fuel_names = sorted([f.replace("_init.csv", "") for f in fuel_files])
+        # Extract fuel names from <name>.json files
+        fuel_names = fl.list_fuel_names(fuel_data_dir)
 
         if not fuel_names:
             print("No fuels found in the specified directory.")

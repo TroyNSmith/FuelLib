@@ -37,6 +37,7 @@ dependencies = [
     "importlib-resources>=5.0; python_version < '3.9'",
     "pydantic>=2.13.4",
     "pint>=0.24.4",
+    "click>=8.4.2",
 ]
 
 [project.optional-dependencies]
@@ -47,6 +48,8 @@ dev = [
     "sphinx-rtd-theme>=1.0",
     "sphinxcontrib-bibtex>=2.0",
     "codespell>=2.2.0",
+    "ty>=0.0.74",
+    "ruff>=0.16.4",
 ]
 
 [project.scripts]
@@ -55,13 +58,7 @@ fl-export-pele = "fuellib.exporters.pele:main"
 fl-build-docs = "fuellib.cli.build_docs:main"
 fl-clean-docs = "fuellib.cli.clean_docs:main"
 fl-format = "fuellib.cli.format_code:main"
-fl-eps2K = "fuellib.cli.transport_props_converter:eps2K_main"
-fl-C2K = "fuellib.cli.temp_converter:c2k_main"
-fl-K2C = "fuellib.cli.temp_converter:k2c_main"
-fl-C2F = "fuellib.cli.temp_converter:c2f_main"
-fl-F2C = "fuellib.cli.temp_converter:f2c_main"
-fl-F2K = "fuellib.cli.temp_converter:f2k_main"
-fl-K2F = "fuellib.cli.temp_converter:k2f_main"
+fl-eps2K = "fuellib.cli.transport_props_converter:epsilon_to_kelvin_main"
 fl-plt-comp = "fuellib.cli.plotting:comp_main"
 fl-plt-props = "fuellib.cli.plotting:props_main"
 fl-fuels = "fuellib.cli.fuel_manager:list_fuels_main"
@@ -97,6 +94,36 @@ extend-exclude = '''
 )/
 '''
 
+# Ruff configurations
+[tool.ruff]
+exclude = [
+    "docs",
+    "tutorials",
+]
+
+[tool.ruff.lint]
+ignore = [
+    "COM812",   # missing trailing comma (handled by format)
+    "TID252",   # relative import
+    "D203",     # confict: incorrect blank line before class (uses D211 instead)
+    "D213",     # conflict: multi-line summary second line (uses D212 instead)
+    "CPY001",   # copyright notice at top of file
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**.py" = ["S101"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+# Ty configurations
+[tool.ty.src]
+include = [
+    "fuellib",
+    "tests",
+]
+
+# Pixi configurations
 [tool.pixi.workspace]
 channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "osx-arm64", "win-64"]
@@ -111,4 +138,8 @@ fuellib = { path = ".", editable = true }
 default = { solve-group = "default" }
 dev = { features = ["dev"], solve-group = "default" }
 
-[tool.pixi.tasks]
+[tool.pixi.feature.dev.tasks]
+fmt = "ruff format ."
+lint = "ruff check . --fix"
+types = "ty check"
+test = "pytest"

@@ -8,4 +8,4 @@ ureg = UnitRegistry()
 #: Shorthand for creating Quantity objects.
 Q_ = ureg.Quantity
 
-__all__ = ["ureg", "Q_"]
+__all__ = ["Q_", "ureg"]

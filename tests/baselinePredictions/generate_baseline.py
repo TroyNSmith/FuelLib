@@ -1,5 +1,6 @@
 import os
 import sys
+
 import numpy as np
 import pandas as pd
 
@@ -18,8 +19,7 @@ TESTS_DIR = os.path.dirname(os.path.dirname(__file__))
 if TESTS_DIR not in sys.path:
     sys.path.insert(0, TESTS_DIR)
 
-import fuellib as fl
-from get_pred_and_data import get_pred_and_data
+from get_pred_and_data import get_pred_and_data  # ty: ignore[unresolved-import]
 
 # Directories for tests and baseline predictions
 # test_dir = os.path.dirname(__file__)
@@ -78,6 +78,7 @@ for fuel_name in fuel_names:
             df_combined = pd.merge(df_combined, df_prop, on="Temperature", how="outer")
 
     # Sort by Temperature (optional, but nice for clean output)
+    assert df_combined is not None
     df_combined = df_combined.sort_values(by="Temperature").reset_index(drop=True)
 
     # Generate units list in correct order

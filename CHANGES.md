@@ -6,6 +6,15 @@
 - Restricted Python to >=3.10,<3.14 (black>=26.3.1 depends on Python>=3.10).
 - Configured pyproject.toml to support [pixi environment management.](https://pixi.prefix.dev/latest/)
 
+#### Breaking Changes
+- Removed the temperature conversion functions from `fuellib.convert`
+  (`celsius_to_kelvin`, `kelvin_to_celsius`, `celsius_to_fahrenheit`,
+  `fahrenheit_to_celsius`, `fahrenheit_to_kelvin`, `kelvin_to_fahrenheit`) and their
+  CLI commands (`fl-C2K`, `fl-K2C`, `fl-C2F`, `fl-F2C`, `fl-F2K`, `fl-K2F`), since
+  these are handled directly by `pint`. Use `fuellib.utils.units.Q_(value, "degC").to("K")`
+  (or equivalent) instead. `fuellib.convert.epsilon_to_characteristic_temperature`
+  and `fl-eps2K` are unaffected.
+
 
 #### Module Organization
 - **Converted `fuel` to `Fuel` (avoids namespace clash; complies with PEP-8)**

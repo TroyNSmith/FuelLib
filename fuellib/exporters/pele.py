@@ -1,12 +1,15 @@
-import os
-import pandas as pd
 import argparse
-import subprocess
-from datetime import datetime
-from scipy import stats as st
-import fuellib as fl
 import json
+import os
+import subprocess
 import urllib.request
+from datetime import datetime
+
+import pandas as pd
+from scipy import stats as st
+
+import fuellib as fl
+from fuellib.utils.units import ureg
 
 # Default data directory - use fuellib's embedded data
 FUELDATA_DIR = fl.get_fueldata_dir()
@@ -57,18 +60,18 @@ class UnitConverter:
         """
         if self.units == "cgs":
             # Convert from MKS to CGS
-            self.MW = 1e3  # kg/mol to g/mol
-            self.Cp = 1e4  # J/kg/K to erg/g/K
-            self.Vm = 1e6  # m^3/mol to cm^3/mol
-            self.Lv = 1e4  # J/kg to erg/g
-            self.P = 1e1  # Pa to dyne/cm^2
+            self.mw = 1e3  # kg/mol to g/mol
+            self.cp = 1e4  # J/kg/K to erg/g/K
+            self.vm = 1e6  # m^3/mol to cm^3/mol
+            self.latent_heat = 1e4  # J/kg to erg/g
+            self.pressure = 1e1  # Pa to dyne/cm^2
         else:
             # MKS units (no conversion)
-            self.MW = 1.0
-            self.Cp = 1.0
-            self.Vm = 1.0
-            self.Lv = 1.0
-            self.P = 1.0
+            self.mw = 1.0
+            self.cp = 1.0
+            self.vm = 1.0
+            self.latent_heat = 1.0
+            self.pressure = 1.0
 
 
 def get_git_info():
@@ -201,27 +204,36 @@ def create_individual_compounds_dataframe(fuel, compound_names, converter):
     # Terms for liquid specific heat capacity in (J/kg/K) or (erg/g/K)
     # Cp(T) = Cp_A + Cp_B * theta + Cp_C * theta^2
     # where theta = (T - 298.15) / 700
-    Cp_A = fuel.Cp_stp / fuel.MW
-    Cp_B = fuel.Cp_B / fuel.MW
-    Cp_C = fuel.Cp_C / fuel.MW
+    molecular_weight = fuel.molecular_weight.to("kg/mol").magnitude
+    heat_capacity_coeff_a = (
+        fuel.heat_capacity_stp.to("J/mol/K").magnitude / molecular_weight
+    )
+    heat_capacity_coeff_b = (
+        fuel.heat_capacity_coeff_b.to("J/mol/K").magnitude / molecular_weight
+    )
+    heat_capacity_coeff_c = (
+        fuel.heat_capacity_coeff_c.to("J/mol/K").magnitude / molecular_weight
+    )
 
     return pd.DataFrame(
         {
             "Compound": compound_names,
-            "Family": fuel.fam,
-            "Y_0": fuel.Y_0,
-            "MW": fuel.MW * converter.MW,
-            "Tc": fuel.Tc,
-            "Pc": fuel.Pc * converter.P,
-            "Vc": fuel.Vc * converter.Vm,
-            "Tb": fuel.Tb,
-            "omega": fuel.omega,
-            "Vm_stp": fuel.Vm_stp * converter.Vm,
-            "Cp_A": Cp_A * converter.Cp,
-            "Cp_B": Cp_B * converter.Cp,
-            "Cp_C": Cp_C * converter.Cp,
-            "Cp_stp": Cp_A * converter.Cp,  # For PeleMP model
-            "Lv_stp": fuel.Lv_stp * converter.Lv,
+            "Family": fuel.family_code,
+            "Y_0": fuel.initial_mass_fractions,
+            "MW": molecular_weight * converter.mw,
+            "Tc": fuel.critical_temperature.to("K").magnitude,
+            "Pc": fuel.critical_pressure.to("Pa").magnitude * converter.pressure,
+            "Vc": fuel.critical_volume.to("m**3/mol").magnitude * converter.vm,
+            "Tb": fuel.boiling_temperature.to("K").magnitude,
+            "omega": fuel.acentric_factor.magnitude,
+            "Vm_stp": fuel.molar_liquid_volume_stp.to("m**3/mol").magnitude
+            * converter.vm,
+            "Cp_A": heat_capacity_coeff_a * converter.cp,
+            "Cp_B": heat_capacity_coeff_b * converter.cp,
+            "Cp_C": heat_capacity_coeff_c * converter.cp,
+            "Cp_stp": heat_capacity_coeff_a * converter.cp,  # For PeleMP model
+            "Lv_stp": fuel.latent_heat_vaporization_stp.to("J/kg").magnitude
+            * converter.latent_heat,
         }
     )
 
@@ -247,28 +259,79 @@ def create_mixture_dataframe(fuel, export_mix_name, converter):
     # Terms for liquid specific heat capacity in (J/kg/K) or (erg/g/K)
     # Cp(T) = Cp_A + Cp_B * theta + Cp_C * theta^2
     # where theta = (T - 298.15) / 700
-    X = fuel.Y2X(fuel.Y_0)
-    Cp_A = fl.utility.mixing_rule(fuel.Cp_stp / fuel.MW, X)
-    Cp_B = fl.utility.mixing_rule(fuel.Cp_B / fuel.MW, X)
-    Cp_C = fl.utility.mixing_rule(fuel.Cp_C / fuel.MW, X)
+    mole_fractions = fl.fuel.mass_fraction_to_mole_fraction(
+        fuel, fuel.initial_mass_fractions
+    )
+    molecular_weight = fuel.molecular_weight.to("kg/mol").magnitude
+    heat_capacity_coeff_a = fl.utility.mixing_rule(
+        fuel.heat_capacity_stp.to("J/mol/K").magnitude / molecular_weight,
+        mole_fractions,
+    )
+    heat_capacity_coeff_b = fl.utility.mixing_rule(
+        fuel.heat_capacity_coeff_b.to("J/mol/K").magnitude / molecular_weight,
+        mole_fractions,
+    )
+    heat_capacity_coeff_c = fl.utility.mixing_rule(
+        fuel.heat_capacity_coeff_c.to("J/mol/K").magnitude / molecular_weight,
+        mole_fractions,
+    )
 
     return pd.DataFrame(
         {
             "Compound": [export_mix_name],
-            "Family": [st.mode(fuel.fam).mode],
+            "Family": [st.mode(fuel.family_code).mode],
             "Y_0": [1.0],
-            "MW": [fuel.mean_molecular_weight(fuel.Y_0) * converter.MW],
-            "Tc": [fl.utility.mixing_rule(fuel.Tc, X)],
-            "Pc": [fl.utility.mixing_rule(fuel.Pc, X) * converter.P],
-            "Vc": [fl.utility.mixing_rule(fuel.Vc, X) * converter.Vm],
-            "Tb": [fl.utility.mixing_rule(fuel.Tb, X)],
-            "omega": [fl.utility.mixing_rule(fuel.omega, X)],
-            "Vm_stp": [fl.utility.mixing_rule(fuel.Vm_stp, X) * converter.Vm],
-            "Cp_A": [Cp_A * converter.Cp],
-            "Cp_B": [Cp_B * converter.Cp],
-            "Cp_C": [Cp_C * converter.Cp],
-            "Cp_stp": [Cp_A * converter.Cp],  # For MP model: Cp_stp = Cp_A
-            "Lv_stp": [fl.utility.mixing_rule(fuel.Lv_stp, X) * converter.Lv],
+            "MW": [
+                fl.fuel.mean_molecular_weight(fuel, fuel.initial_mass_fractions)
+                .to("kg/mol")
+                .magnitude
+                * converter.mw
+            ],
+            "Tc": [
+                fl.utility.mixing_rule(
+                    fuel.critical_temperature.to("K").magnitude, mole_fractions
+                )
+            ],
+            "Pc": [
+                fl.utility.mixing_rule(
+                    fuel.critical_pressure.to("Pa").magnitude, mole_fractions
+                )
+                * converter.pressure
+            ],
+            "Vc": [
+                fl.utility.mixing_rule(
+                    fuel.critical_volume.to("m**3/mol").magnitude, mole_fractions
+                )
+                * converter.vm
+            ],
+            "Tb": [
+                fl.utility.mixing_rule(
+                    fuel.boiling_temperature.to("K").magnitude, mole_fractions
+                )
+            ],
+            "omega": [
+                fl.utility.mixing_rule(fuel.acentric_factor.magnitude, mole_fractions)
+            ],
+            "Vm_stp": [
+                fl.utility.mixing_rule(
+                    fuel.molar_liquid_volume_stp.to("m**3/mol").magnitude,
+                    mole_fractions,
+                )
+                * converter.vm
+            ],
+            "Cp_A": [heat_capacity_coeff_a * converter.cp],
+            "Cp_B": [heat_capacity_coeff_b * converter.cp],
+            "Cp_C": [heat_capacity_coeff_c * converter.cp],
+            "Cp_stp": [
+                heat_capacity_coeff_a * converter.cp
+            ],  # For MP model: Cp_stp = Cp_A
+            "Lv_stp": [
+                fl.utility.mixing_rule(
+                    fuel.latent_heat_vaporization_stp.to("J/kg").magnitude,
+                    mole_fractions,
+                )
+                * converter.latent_heat
+            ],
         }
     )
 
@@ -342,7 +405,7 @@ def export_pele(
         path = os.getcwd()
 
     # Input validation
-    if not hasattr(fuel, "compounds") or not hasattr(fuel, "Y_0"):
+    if not hasattr(fuel, "compounds") or not hasattr(fuel, "initial_mass_fractions"):
         raise TypeError("fuel parameter must be a valid FuelLib fuel object")
 
     if liq_prop_model.lower() not in ["gcm", "mp"]:
@@ -447,9 +510,15 @@ def export_pele(
         # Calculate density at 298.15 K
         ref_T = 298.15
         if export_mix:
-            rho = fuel.mixture_density(fuel.Y_0, ref_T)
+            rho = (
+                fl.fuel.mixture_density(
+                    fuel, fuel.initial_mass_fractions, ref_T * ureg.K
+                )
+                .to("kg/m**3")
+                .magnitude
+            )
         else:
-            rho = fuel.density(ref_T)
+            rho = fl.fuel.density(fuel, ref_T * ureg.K).to("kg/m**3").magnitude
         df["rho"] = rho
 
         # Get Antoine coefficients
@@ -460,11 +529,21 @@ def export_pele(
                     psat_B,
                     psat_C,
                     psat_D,
-                ) = fuel.mixture_vapor_pressure_antoine_coeffs(fuel.Y_0, units=units)
-                rho = fuel.mixture_density(fuel.Y_0, ref_T)
+                ) = fl.fuel.mixture_vapor_pressure_antoine_coeffs(
+                    fuel, fuel.initial_mass_fractions, units=units
+                )
+                rho = (
+                    fl.fuel.mixture_density(
+                        fuel, fuel.initial_mass_fractions, ref_T * ureg.K
+                    )
+                    .to("kg/m**3")
+                    .magnitude
+                )
             else:
-                psat_A, psat_B, psat_C, psat_D = fuel.psat_antoine_coeffs(units=units)
-                rho = fuel.density(ref_T)
+                psat_A, psat_B, psat_C, psat_D = (
+                    fl.fuel.saturation_pressure_antoine_coeffs(fuel, units=units)
+                )
+                rho = fl.fuel.density(fuel, ref_T * ureg.K).to("kg/m**3").magnitude
 
             df["psat_A"] = psat_A
             df["psat_B"] = psat_B
@@ -573,9 +652,6 @@ def main():
     :param --fuel_data_dir: Directory where fuel data files are located. Default is FuelLib/fuelData.
     :type --fuel_data_dir: str, optional
 
-    :param --fuel_decomp_name: Name of the decomposition file (optional). If not provided, defaults to fuel_name.
-    :type --fuel_decomp_name: str, optional
-
     :param --units: Units for critical properties. Options are "mks" (default) or "cgs".
     :type --units: str, optional
 
@@ -624,15 +700,6 @@ def main():
         default=FUELDATA_DIR,
         metavar="PATH",
         help="Directory where fuel data files are located (optional, default: FuelLib/fuelData).",
-    )
-
-    # Optional argument for decomposition file name
-    parser.add_argument(
-        "-decomp",
-        "--fuel_decomp_name",
-        default=None,
-        metavar="NAME",
-        help="Name of the decomposition file (optional). If not provided, defaults to fuel_name.",
     )
 
     # Optional argument for units
@@ -715,12 +782,7 @@ def main():
     # Parse arguments
     args = parser.parse_args()
     fuel_name = args.fuel_name
-    fuel_decomp_name = args.fuel_decomp_name
     fuel_data_dir = args.fuel_data_dir
-
-    # If decomposition name not provided, read from metadata (required)
-    if fuel_decomp_name is None:
-        fuel_decomp_name = fl.get_metadata_decomp_name(fuel_name, fuel_data_dir)
 
     units = args.units.lower()
     dep_fuel_names = args.dep_fuel_names
@@ -732,9 +794,8 @@ def main():
     psat_antoine = args.psat_antoine
 
     # Print the parsed arguments
-    print(f"Preparing to export properties:")
+    print("Preparing to export properties:")
     print(f"    Fuel name: {fuel_name}")
-    print(f"    Decomposition name: {fuel_decomp_name}")
     print(f"    Units: {units}")
     print(f"    Liquid property model: {liq_prop_model}")
     if liq_prop_model.lower() == "mp":
@@ -744,7 +805,7 @@ def main():
     print(f"    Fuel data directory: {fuel_data_dir}")
 
     # Create the groupContribution object for the specified fuel
-    fuel = fl.Fuel(fuel_name, decompName=fuel_decomp_name, fuelDataDir=fuel_data_dir)
+    fuel = fl.Fuel.from_name(fuel_name, fuel_data_dir=fuel_data_dir)
 
     # Export properties for Pele
     export_pele(

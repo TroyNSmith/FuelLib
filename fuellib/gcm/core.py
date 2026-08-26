@@ -30,49 +30,55 @@ class BaseMethod(BaseModel):
     # Each takes a Component and returns a pint.Quantity with appropriate units.
 
     @abstractmethod
-    def calc_MW(self, comp: "Component") -> Quantity:
+    def calc_molecular_weight(self, comp: "Component") -> Quantity:
         """Calculate molecular weight in kg/mol."""
 
     @abstractmethod
-    def calc_Tc(self, comp: "Component") -> Quantity:
+    def calc_critical_temperature(self, comp: "Component") -> Quantity:
         """Calculate critical temperature in K."""
 
     @abstractmethod
-    def calc_Pc(self, comp: "Component") -> Quantity:
+    def calc_critical_pressure(self, comp: "Component") -> Quantity:
         """Calculate critical pressure in Pa."""
 
     @abstractmethod
-    def calc_Vc(self, comp: "Component") -> Quantity:
+    def calc_critical_volume(self, comp: "Component") -> Quantity:
         """Calculate critical volume in m³/mol."""
 
     @abstractmethod
-    def calc_Tb(self, comp: "Component") -> Quantity:
+    def calc_boiling_temperature(self, comp: "Component") -> Quantity:
         """Calculate boiling temperature in K."""
 
     @abstractmethod
-    def calc_Tm(self, comp: "Component") -> Quantity:
+    def calc_melting_temperature(self, comp: "Component") -> Quantity:
         """Calculate melting temperature in K."""
 
     @abstractmethod
-    def calc_Hf(self, comp: "Component") -> Quantity:
+    def calc_enthalpy_of_formation(self, comp: "Component") -> Quantity:
         """Calculate enthalpy of formation in J/mol."""
 
     @abstractmethod
-    def calc_Gf(self, comp: "Component") -> Quantity:
+    def calc_gibbs_free_energy(self, comp: "Component") -> Quantity:
         """Calculate Gibbs free energy in J/mol."""
 
     @abstractmethod
-    def calc_Hv_stp(self, comp: "Component") -> Quantity:
+    def calc_enthalpy_of_vaporization_stp(self, comp: "Component") -> Quantity:
         """Calculate enthalpy of vaporization at 298 K in J/mol."""
 
     @abstractmethod
-    def calc_omega(self, comp: "Component") -> Quantity:
+    def calc_acentric_factor(self, comp: "Component") -> Quantity:
         """Calculate acentric factor (dimensionless)."""
 
     @abstractmethod
-    def calc_Vm_stp(self, comp: "Component") -> Quantity:
+    def calc_molar_liquid_volume_stp(self, comp: "Component") -> Quantity:
         """Calculate molar liquid volume at 298 K in m³/mol."""
 
     @abstractmethod
-    def calc_Cp_coeffs(self, comp: "Component") -> tuple[Quantity, Quantity, Quantity]:
-        """Calculate specific heat coefficients (Cp_A, Cp_B, Cp_C) in J/mol/K."""
+    def calc_heat_capacity_coeffs(
+        self, comp: "Component"
+    ) -> tuple[Quantity, Quantity, Quantity]:
+        """Calculate heat capacity coefficients (A, B, C) in J/mol/K."""
+
+    @abstractmethod
+    def calc_carbon_number(self, comp: "Component") -> Quantity:
+        """Calculate carbon number (dimensionless)."""

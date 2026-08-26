@@ -6,13 +6,15 @@ This module provides functions for visualizing:
 - Mixture properties over a temperature range
 """
 
+import argparse
 import os
-import re
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import argparse
+
 import fuellib as fl
+from fuellib.utils.units import Q_, ureg
 
 
 def plot_composition(
@@ -20,7 +22,6 @@ def plot_composition(
     fuel_data_dir=None,
     output_dir=None,
     title=None,
-    decomp_name=None,
     save=True,
     display=False,
 ):
@@ -35,8 +36,6 @@ def plot_composition(
     :type output_dir: str, optional
     :param title: Title for the plots (optional, default: fuel_name, or "none"/"None" to disable).
     :type title: str, optional
-    :param decomp_name: Name of the decomposition file to use (optional, default: fuel_name).
-    :type decomp_name: str, optional
     :param save: Whether to save the plot to a file (optional, default: True).
     :type save: bool, optional
     :param display: Whether to display the plot with plt.show() (optional, default: False).
@@ -59,15 +58,15 @@ def plot_composition(
         os.makedirs(output_dir)
 
     # Load the fuel
-    fuel = fl.Fuel(fuel_name, decompName=decomp_name, fuelDataDir=fuel_data_dir)
+    fuel = fl.Fuel.from_name(fuel_name, fuel_data_dir=fuel_data_dir)
 
     # Create DataFrame with compound data and carbon numbers from fuel object
     df = pd.DataFrame(
         {
             "Compound": fuel.compounds,
-            "Weight %": fuel.Y_0 * 100,
+            "Weight %": fuel.initial_mass_fractions * 100,
             "Family": fuel.hc_type,
-            "nC": fuel.nC,
+            "carbon_number": fuel.carbon_number.magnitude,
         }
     )
 
@@ -109,7 +108,7 @@ def plot_composition(
 
     # Plot 1: Bar chart grouped by carbon number, colored by hydrocarbon type
     spacing = [-0.2985, -0.099, 0.099, 0.2985]
-    nC_values = sorted(df["nC"].unique())
+    carbon_numbers = sorted(df["carbon_number"].unique())
 
     # Get unique families that are in the filtered data
     families_in_data = [f for f in family_names if f in df["Family"].values]
@@ -119,11 +118,11 @@ def plot_composition(
         df_family = df[df["Family"] == family]
 
         # Group by carbon number and sum weights
-        family_by_nC = df_family.groupby("nC")["Weight %"].sum()
+        family_by_carbon_number = df_family.groupby("carbon_number")["Weight %"].sum()
 
         ax1.bar(
-            family_by_nC.index + spacing[k],
-            family_by_nC.values,
+            family_by_carbon_number.index + spacing[k],
+            family_by_carbon_number.values,
             label=family,
             alpha=1,
             color=colors.get(family, "#7f7f7f"),
@@ -132,11 +131,11 @@ def plot_composition(
 
     ax1.set_xlabel("Carbon Number", fontsize=16)
     ax1.set_ylabel("Weight %", fontsize=16)
-    ax1.set_xticks(nC_values)
+    ax1.set_xticks(carbon_numbers)
     ax1.set_xticklabels(
-        [int(n) if n == int(n) else f"{n:.1f}" for n in nC_values], fontsize=14
+        [int(n) if n == int(n) else f"{n:.1f}" for n in carbon_numbers], fontsize=14
     )
-    ax1.set_xlim(min(nC_values) - 0.5, max(nC_values) + 0.5)
+    ax1.set_xlim(min(carbon_numbers) - 0.5, max(carbon_numbers) + 0.5)
     ax1.tick_params(axis="y", labelsize=14)
     ax1.grid(axis="y", alpha=0.3)
 
@@ -185,7 +184,7 @@ def plot_composition(
     ax2.axis("equal")
 
     # Adjust layout to make room for legend BEFORE adding it
-    fig.tight_layout(rect=[0, 0.08, 1, 0.96])
+    fig.tight_layout(rect=(0, 0.08, 1, 0.96))
 
     # Add a single figure-level legend for all families
     legend_handles = [
@@ -225,7 +224,6 @@ def plot_mixture_properties(
     fuel_data_dir=None,
     output_dir=None,
     title=None,
-    decomp_name=None,
     save=True,
     display=False,
 ):
@@ -242,8 +240,6 @@ def plot_mixture_properties(
     :type output_dir: str, optional
     :param title: Title for the plot (optional, default: None).
     :type title: str, optional
-    :param decomp_name: Name of the decomposition file to use (optional, default: fuel_name).
-    :type decomp_name: str, optional
     :param save: Whether to save the plot to a file (optional, default: True).
     :type save: bool, optional
     :param display: Whether to display the plot with plt.show() (optional, default: False).
@@ -377,65 +373,81 @@ def plot_mixture_properties(
 
     def get_predictions_and_data(fuel_name, prop_name):
         """Get predicted and experimental data for a property."""
-        fuel = fl.Fuel(fuel_name, decompName=decomp_name, fuelDataDir=fuel_data_dir)
+        fuel = fl.Fuel.from_name(fuel_name, fuel_data_dir=fuel_data_dir)
 
-        # Try to load experimental data
-        props_dir = fuel.fuelDataPropsDir
+        temperature_data = pd.Series(dtype=float)
+        property_data = pd.Series(dtype=float)
 
-        T_data = pd.Series(dtype=float)
-        prop_data = pd.Series(dtype=float)
-
-        if props_dir and os.path.exists(props_dir):
-            # Check if metadata specifies a different props_data filename
-            props_data_name = fl.get_metadata_props_data(fuel_name, fuel_data_dir)
-            data_filename = props_data_name if props_data_name else fuel_name
-
-            data_file = os.path.join(props_dir, f"{data_filename}.csv")
-            if os.path.exists(data_file):
-                try:
-                    data = pd.read_csv(data_file, skiprows=[1])
-                    if prop_name in data.columns:
-                        mask = data[prop_name].notna()
-                        T_data = data.loc[mask, "Temperature"]
-                        prop_data = data.loc[mask, prop_name]
-                except Exception:
-                    pass
+        try:
+            temperature_q, values_q = fl.fuel.experimental_property(fuel, prop_name)
+            temperature_data = pd.Series(temperature_q.to("degC").magnitude)
+            property_data = pd.Series(values_q.magnitude)
+        except KeyError:
+            pass
 
         # Generate predictions over temperature range
         # First check if experimental data exists - use its range if available
-        if len(T_data) > 0:
+        if len(temperature_data) > 0:
             # Use data range if available
-            T_pred = fl.convert.C2K(np.linspace(T_data.min(), T_data.max(), 100))
+            temp_range = np.linspace(
+                temperature_data.min(), temperature_data.max(), 100
+            )
+            temperature_pred = Q_(temp_range, "degC").to("K").magnitude
         else:
             # Use property-specific default range
             temp_min, temp_max = get_temp_range(prop_name)
-            T_pred = fl.convert.C2K(np.linspace(temp_min, temp_max, 100))
+            temperature_pred = (
+                Q_(np.linspace(temp_min, temp_max, 100), "degC").to("K").magnitude
+            )
 
-        pred = np.zeros_like(T_pred)
-        Y_li = fuel.Y_0
+        pred = np.zeros_like(temperature_pred)
+        mass_fractions = fuel.initial_mass_fractions
 
-        for i, T in enumerate(T_pred):
+        for i, temperature in enumerate(temperature_pred):
+            temperature_q = temperature * ureg.K
             try:
                 if prop_name == "Density":
                     pred[i] = (
-                        fuel.mixture_density(Y_li, T) * 1.0e-03
-                    )  # Convert to g/cm^3
+                        fl.fuel.mixture_density(fuel, mass_fractions, temperature_q)
+                        .to("g/cm**3")
+                        .magnitude
+                    )
                 elif prop_name == "VaporPressure":
                     pred[i] = (
-                        fuel.mixture_vapor_pressure(Y_li, T) * 1.0e-03
-                    )  # Convert to kPa
+                        fl.fuel.mixture_vapor_pressure(
+                            fuel, mass_fractions, temperature_q
+                        )
+                        .to("kPa")
+                        .magnitude
+                    )
                 elif prop_name == "Viscosity":
                     pred[i] = (
-                        fuel.mixture_kinematic_viscosity(Y_li, T) * 1.0e6
-                    )  # Convert to mm^2/s
+                        fl.fuel.mixture_kinematic_viscosity(
+                            fuel, mass_fractions, temperature_q
+                        )
+                        .to("mm**2/s")
+                        .magnitude
+                    )
                 elif prop_name == "SurfaceTension":
-                    pred[i] = fuel.mixture_surface_tension(Y_li, T)
+                    pred[i] = (
+                        fl.fuel.mixture_surface_tension(
+                            fuel, mass_fractions, temperature_q
+                        )
+                        .to("N/m")
+                        .magnitude
+                    )
                 elif prop_name == "ThermalConductivity":
-                    pred[i] = fuel.mixture_thermal_conductivity(Y_li, T)
+                    pred[i] = (
+                        fl.fuel.mixture_thermal_conductivity(
+                            fuel, mass_fractions, temperature_q
+                        )
+                        .to("W/m/K")
+                        .magnitude
+                    )
             except Exception:
                 pred[i] = np.nan
 
-        return T_data, prop_data, T_pred, pred
+        return temperature_data, property_data, temperature_pred, pred
 
     # Create figure with subplots
     n_props = len(property_names)
@@ -449,14 +461,14 @@ def plot_mixture_properties(
     # Plot properties for each fuel
     for i, prop_name in enumerate(property_names):
         for fuel_idx, fuel_name in enumerate(fuel_names):
-            T_data, prop_data, T_pred, pred = get_predictions_and_data(
-                fuel_name, prop_name
+            temperature_data, property_data, temperature_pred, pred = (
+                get_predictions_and_data(fuel_name, prop_name)
             )
             line_color, marker_style = get_line_spec(fuel_name, fuel_index=fuel_idx)
 
             # Plot predictions
             ax[i].plot(
-                fl.convert.K2C(T_pred),
+                Q_(temperature_pred, "K").to("degC").magnitude,
                 pred,
                 "-",
                 color=line_color,
@@ -465,15 +477,12 @@ def plot_mixture_properties(
             )
 
             # Plot experimental data if available
-            if len(prop_data) > 0:
-                # Get props_data name for the legend
-                props_data_name = fl.get_metadata_props_data(fuel_name, fuel_data_dir)
-                data_label = props_data_name if props_data_name else fuel_name
+            if len(property_data) > 0:
                 ax[i].scatter(
-                    T_data,
-                    prop_data,
+                    temperature_data,
+                    property_data,
                     marker=marker_style,
-                    label=f"Data: {get_legend_label(data_label)}",
+                    label=f"Data: {get_legend_label(fuel_name)}",
                     facecolors=line_color,
                     s=75,
                     zorder=5,
@@ -546,13 +555,6 @@ def comp_main():
         help="Title for the plots (optional, default: fuel_name, or 'none' to disable).",
     )
     parser.add_argument(
-        "-decomp",
-        "--decomp_name",
-        default=None,
-        metavar="NAME",
-        help="Name of the decomposition file to use (optional, default: fuel_name).",
-    )
-    parser.add_argument(
         "-d",
         "--display",
         type=lambda x: str(x).lower() not in ["false", "0"],
@@ -575,7 +577,6 @@ def comp_main():
             fuel_data_dir=args.fuel_data_dir,
             output_dir=args.output_dir,
             title=args.title,
-            decomp_name=args.decomp_name,
             save=args.save,
             display=args.display,
         )
@@ -630,13 +631,6 @@ def props_main():
         help="Title for the plot (optional).",
     )
     parser.add_argument(
-        "-decomp",
-        "--decomp_name",
-        default=None,
-        metavar="NAME",
-        help="Name of the decomposition file to use (optional, default: fuel_name).",
-    )
-    parser.add_argument(
         "-d",
         "--display",
         type=lambda x: str(x).lower() not in ["false", "0"],
@@ -660,7 +654,6 @@ def props_main():
             fuel_data_dir=args.fuel_data_dir,
             output_dir=args.output_dir,
             title=args.title,
-            decomp_name=args.decomp_name,
             save=args.save,
             display=args.display,
         )

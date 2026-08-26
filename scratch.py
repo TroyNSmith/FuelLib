@@ -1,10 +1,9 @@
 """Scratch."""
 
-import numpy as np
-import pandas as pd
 from pint import UnitRegistry
 
-from fuellib import Component, FuelNew
+import fuellib as fl
+from fuellib import Component, Fuel
 from fuellib.gcm import ConstantinouMethod
 
 ureg = UnitRegistry()
@@ -13,5 +12,5 @@ comp = Component(name="test", decomposition={("CH3", 2), ("CH2", 1)})
 
 method = ConstantinouMethod()
 
-fuel = FuelNew.from_json("fuellib/data/fuelData/decane.json")
-print(fuel)
+fuel = Fuel.from_json("fuellib/data/fuelData/decane.json")
+print(fl.fuel.mixture_density(fuel, Yi=fuel.Y_0, T=350 * ureg("degC")))

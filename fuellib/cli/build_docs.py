@@ -6,8 +6,8 @@ setup of paths and environment variables needed for autodoc to work correctly.
 """
 
 import os
-import sys
 import subprocess
+import sys
 
 
 def main():

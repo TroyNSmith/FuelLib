@@ -1,0 +1,914 @@
+{
+    "components": {
+        "Toluene": {
+            "weight_percent": 0.25,
+            "formula": "C7H8",
+            "pelephysics_key": "C6H5CH3",
+            "decomposition": {
+                "ACH": 5,
+                "ACCH3": 1
+            }
+        },
+        "C2-Benzene": {
+            "weight_percent": 1.98,
+            "formula": "C8H10",
+            "pelephysics_key": "C6H5C2H5",
+            "decomposition": {
+                "CH3": 1,
+                "ACH": 5,
+                "ACCH2": 1
+            }
+        },
+        "C3-Benzene": {
+            "weight_percent": 4.17,
+            "formula": "C9H12",
+            "pelephysics_key": "C6H5C3H7",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 1,
+                "ACH": 5,
+                "ACCH2": 1
+            }
+        },
+        "C4-Benzene": {
+            "weight_percent": 2.33,
+            "formula": "C10H14",
+            "pelephysics_key": "C6H5C4H9",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 2,
+                "ACH": 5,
+                "ACCH2": 1
+            }
+        },
+        "C5-Benzene": {
+            "weight_percent": 1.19,
+            "formula": "C11H16",
+            "pelephysics_key": "C6H5C5H11",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 3,
+                "ACH": 5,
+                "ACCH2": 1
+            }
+        },
+        "C6-Benzene": {
+            "weight_percent": 0.66,
+            "formula": "C12H18",
+            "pelephysics_key": "C6H5C6H13",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 4,
+                "ACH": 5,
+                "ACCH2": 1
+            }
+        },
+        "C7-Benzene": {
+            "weight_percent": 0.25,
+            "formula": "C13H20",
+            "pelephysics_key": "C6H5C7H15",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 5,
+                "ACH": 5,
+                "ACCH2": 1
+            }
+        },
+        "C8-Benzene": {
+            "weight_percent": 0.12,
+            "formula": "C14H22",
+            "pelephysics_key": "C6H5C8H17",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 6,
+                "ACH": 5,
+                "ACCH2": 1
+            }
+        },
+        "C9-Benzene": {
+            "weight_percent": 0.06,
+            "formula": "C15H24",
+            "pelephysics_key": "C6H5C9H19",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 7,
+                "ACH": 5,
+                "ACCH2": 1
+            }
+        },
+        "Diaromatic-C10": {
+            "weight_percent": 0.1,
+            "formula": "C10H8",
+            "pelephysics_key": "NAPH",
+            "decomposition": {
+                "ACH": 8,
+                "AC": 2
+            }
+        },
+        "Diaromatic-C11": {
+            "weight_percent": 0.33,
+            "formula": "C11H10",
+            "pelephysics_key": "METHYLNAPH-1",
+            "decomposition": {
+                "ACH": 7,
+                "AC": 2,
+                "ACCH3": 1
+            }
+        },
+        "Diaromatic-C12": {
+            "weight_percent": 0.41,
+            "formula": "C12H12",
+            "pelephysics_key": "ETHYLNAPH-1",
+            "decomposition": {
+                "CH3": 1,
+                "ACH": 7,
+                "AC": 2,
+                "ACCH2": 1
+            }
+        },
+        "Diaromatic-C13": {
+            "weight_percent": 0.22,
+            "formula": "C13H14",
+            "pelephysics_key": "PROPYLNAPH-1",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 1,
+                "ACH": 7,
+                "AC": 2,
+                "ACCH2": 1
+            }
+        },
+        "Cycloaromatic-C09": {
+            "weight_percent": 0.02,
+            "formula": "C9H10",
+            "pelephysics_key": "INDANE",
+            "decomposition": {
+                "CH2": 1,
+                "ACH": 4,
+                "ACCH2": 2,
+                "5 membered ring": 1
+            }
+        },
+        "Cycloaromatic-C10": {
+            "weight_percent": 0.19,
+            "formula": "C10H12",
+            "pelephysics_key": "TETRA",
+            "decomposition": {
+                "CH2": 2,
+                "ACH": 4,
+                "ACCH2": 2,
+                "6 membered ring": 1
+            }
+        },
+        "Cycloaromatic-C11": {
+            "weight_percent": 0.37,
+            "formula": "C11H14",
+            "pelephysics_key": "METHYLTETRA-2",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 1,
+                "CH": 1,
+                "ACH": 4,
+                "ACCH2": 2,
+                "6 membered ring": 1
+            }
+        },
+        "Cycloaromatic-C12": {
+            "weight_percent": 0.38,
+            "formula": "C12H16",
+            "pelephysics_key": "ETHYLTETRA-2",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 2,
+                "CH": 1,
+                "ACH": 4,
+                "ACCH2": 2,
+                "6 membered ring": 1
+            }
+        },
+        "Cycloaromatic-C13": {
+            "weight_percent": 0.34,
+            "formula": "C13H18",
+            "pelephysics_key": "PROPYLTETRA-2",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 3,
+                "CH": 1,
+                "ACH": 4,
+                "ACCH2": 2,
+                "6 membered ring": 1
+            }
+        },
+        "Cycloaromatic-C14": {
+            "weight_percent": 0.19,
+            "formula": "C14H20",
+            "pelephysics_key": "BUTYLTETRA-2",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 4,
+                "CH": 1,
+                "ACH": 4,
+                "ACCH2": 2,
+                "6 membered ring": 1
+            }
+        },
+        "C07-Isoparaffin": {
+            "weight_percent": 0.21,
+            "formula": "C7H16",
+            "pelephysics_key": "C7H16-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 3,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C08-Isoparaffin": {
+            "weight_percent": 0.88,
+            "formula": "C8H18",
+            "pelephysics_key": "C8H18-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 4,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C09-Isoparaffin": {
+            "weight_percent": 2.59,
+            "formula": "C9H20",
+            "pelephysics_key": "C9H20-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 5,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C10-Isoparaffin": {
+            "weight_percent": 8.15,
+            "formula": "C10H22",
+            "pelephysics_key": "C10H22-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 6,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C11-Isoparaffin": {
+            "weight_percent": 8.38,
+            "formula": "C11H24",
+            "pelephysics_key": "C11H24-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 7,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C12-Isoparaffin": {
+            "weight_percent": 5.41,
+            "formula": "C12H26",
+            "pelephysics_key": "C12H26-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 8,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C13-Isoparaffin": {
+            "weight_percent": 4.63,
+            "formula": "C13H28",
+            "pelephysics_key": "C13H28-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 9,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C14-Isoparaffin": {
+            "weight_percent": 3.96,
+            "formula": "C14H30",
+            "pelephysics_key": "C14H30-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 10,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C15-Isoparaffin": {
+            "weight_percent": 2.28,
+            "formula": "C15H32",
+            "pelephysics_key": "C15H32-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 11,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C16-Isoparaffin": {
+            "weight_percent": 0.75,
+            "formula": "C16H34",
+            "pelephysics_key": "C16H34-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 12,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C17-Isoparaffin": {
+            "weight_percent": 0.2,
+            "formula": "C17H36",
+            "pelephysics_key": "C17H36-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 13,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C18-Isoparaffin": {
+            "weight_percent": 0.03,
+            "formula": "C18H38",
+            "pelephysics_key": "C18H38-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 14,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C19-Isoparaffin": {
+            "weight_percent": 0.0,
+            "formula": "C19H40",
+            "pelephysics_key": "C19H40-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 15,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C20-Isoparaffin": {
+            "weight_percent": 0.0,
+            "formula": "C20H42",
+            "pelephysics_key": "C20H42-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 16,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "n-C07": {
+            "weight_percent": 0.24,
+            "formula": "C7H16",
+            "pelephysics_key": "NC7H16",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 5
+            }
+        },
+        "n-C08": {
+            "weight_percent": 1.11,
+            "formula": "C8H18",
+            "pelephysics_key": "NC8H18",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 6
+            }
+        },
+        "n-C09": {
+            "weight_percent": 2.97,
+            "formula": "C9H20",
+            "pelephysics_key": "NC9H20",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 7
+            }
+        },
+        "n-C10": {
+            "weight_percent": 6.46,
+            "formula": "C10H22",
+            "pelephysics_key": "NC10H22",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 8
+            }
+        },
+        "n-C11": {
+            "weight_percent": 5.22,
+            "formula": "C11H24",
+            "pelephysics_key": "NC11H24",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 9
+            }
+        },
+        "n-C12": {
+            "weight_percent": 3.99,
+            "formula": "C12H26",
+            "pelephysics_key": "NC12H26",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 10
+            }
+        },
+        "n-C13": {
+            "weight_percent": 2.97,
+            "formula": "C13H28",
+            "pelephysics_key": "NC13H28",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 11
+            }
+        },
+        "n-C14": {
+            "weight_percent": 1.97,
+            "formula": "C14H30",
+            "pelephysics_key": "NC14H30",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 12
+            }
+        },
+        "n-C15": {
+            "weight_percent": 0.83,
+            "formula": "C15H32",
+            "pelephysics_key": "NC15H32",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 13
+            }
+        },
+        "n-C16": {
+            "weight_percent": 0.23,
+            "formula": "C16H34",
+            "pelephysics_key": "NC16H34",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 14
+            }
+        },
+        "n-C17": {
+            "weight_percent": 0.06,
+            "formula": "C17H36",
+            "pelephysics_key": "NC17H36",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 15
+            }
+        },
+        "n-C18": {
+            "weight_percent": 0.0,
+            "formula": "C18H38",
+            "pelephysics_key": "NC18H38",
+            "decomposition": {
+                "CH3": 2,
+                "CH2": 16
+            }
+        },
+        "C07-Monocycloparaffin": {
+            "weight_percent": 0.51,
+            "formula": "C7C14",
+            "pelephysics_key": "C6H11CH3",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 5,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C08-Monocycloparaffin": {
+            "weight_percent": 1.01,
+            "formula": "C8H16",
+            "pelephysics_key": "C6H11C2H5",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 6,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C09-Monocycloparaffin": {
+            "weight_percent": 3.06,
+            "formula": "C9H18",
+            "pelephysics_key": "C6H11C3H7",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 7,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C10-Monocycloparaffin": {
+            "weight_percent": 4.47,
+            "formula": "C10H20",
+            "pelephysics_key": "C6H11C4H9",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 8,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C11-Monocycloparaffin": {
+            "weight_percent": 3.55,
+            "formula": "C11H22",
+            "pelephysics_key": "C6H11C5H11",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 9,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C12-Monocycloparaffin": {
+            "weight_percent": 2.45,
+            "formula": "C12H24",
+            "pelephysics_key": "C6H11C6H13",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 10,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C13-Monocycloparaffin": {
+            "weight_percent": 2.25,
+            "formula": "C13H26",
+            "pelephysics_key": "C6H11C7H15",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 11,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C14-Monocycloparaffin": {
+            "weight_percent": 1.19,
+            "formula": "C14H28",
+            "pelephysics_key": "C6H11C8H17",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 12,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C15-Monocycloparaffin": {
+            "weight_percent": 0.77,
+            "formula": "C15H30",
+            "pelephysics_key": "C6H11C9H19",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 13,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C16-Monocycloparaffin": {
+            "weight_percent": 0.11,
+            "formula": "C16H32",
+            "pelephysics_key": "C6H11C10H21",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 14,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C17-Monocycloparaffin": {
+            "weight_percent": 0.02,
+            "formula": "C17H34",
+            "pelephysics_key": "C6H11C11H23",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 15,
+                "CH": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C08-Dicycloparaffin": {
+            "weight_percent": 0.03,
+            "formula": "C8H14",
+            "pelephysics_key": "OHPEN",
+            "decomposition": {
+                "CH2": 6,
+                "CH": 2,
+                "5 membered ring": 2
+            }
+        },
+        "C09-Dicycloparaffin": {
+            "weight_percent": 0.35,
+            "formula": "C9H16",
+            "pelephysics_key": "HYDRIND",
+            "decomposition": {
+                "CH2": 7,
+                "CH": 2,
+                "5 membered ring": 1,
+                "6 membered ring": 1
+            }
+        },
+        "C10-Dicycloparaffin": {
+            "weight_percent": 0.47,
+            "formula": "C10H18",
+            "pelephysics_key": "DECALIN",
+            "decomposition": {
+                "CH2": 8,
+                "CH": 2,
+                "6 membered ring": 2
+            }
+        },
+        "C11-Dicycloparaffin": {
+            "weight_percent": 0.71,
+            "formula": "C11H20",
+            "pelephysics_key": "METHYLDECALIN-2",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 7,
+                "CH": 3,
+                "6 membered ring": 2
+            }
+        },
+        "C12-Dicycloparaffin": {
+            "weight_percent": 0.77,
+            "formula": "C12H22",
+            "pelephysics_key": "ETHYLDECALIN-2",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 8,
+                "CH": 3,
+                "6 membered ring": 2
+            }
+        },
+        "C13-Dicycloparaffin": {
+            "weight_percent": 0.52,
+            "formula": "C13H24",
+            "pelephysics_key": "PROPYLDECALIN-2",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 9,
+                "CH": 3,
+                "6 membered ring": 2
+            }
+        },
+        "C14-Dicycloparaffin": {
+            "weight_percent": 0.45,
+            "formula": "C14H26",
+            "pelephysics_key": "BUTYLDECALIN-2",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 10,
+                "CH": 3,
+                "6 membered ring": 2
+            }
+        },
+        "C15-Dicycloparaffin": {
+            "weight_percent": 0.08,
+            "formula": "C15H28",
+            "pelephysics_key": "PENTYLDECALIN-2",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 11,
+                "CH": 3,
+                "6 membered ring": 2
+            }
+        },
+        "C10-Tricycloparaffin": {
+            "weight_percent": 0.0,
+            "formula": "C10H16",
+            "pelephysics_key": "TRICYCLO-C10",
+            "decomposition": {
+                "CH2": 6,
+                "CH": 4,
+                "4 membered ring": 1,
+                "5 membered ring": 2
+            }
+        },
+        "C11-Tricycloparaffin": {
+            "weight_percent": 0.11,
+            "formula": "C11H18",
+            "pelephysics_key": "TRICYCLO-C11",
+            "decomposition": {
+                "CH2": 7,
+                "CH": 4,
+                "5 membered ring": 3
+            }
+        },
+        "C12-Tricycloparaffin": {
+            "weight_percent": 0.0,
+            "formula": "C12H20",
+            "pelephysics_key": "TRICYCLO-C12",
+            "decomposition": {
+                "CH2": 8,
+                "CH": 4,
+                "5 membered ring": 2,
+                "6 membered ring": 1
+            }
+        }
+    },
+    "properties": {
+        "temperature_unit": "C",
+        "Density": {
+            "unit": "g/cm^3",
+            "data": [
+                [
+                    -40.0,
+                    0.822975
+                ],
+                [
+                    -20.0,
+                    0.8086
+                ],
+                [
+                    0.0,
+                    0.794225
+                ],
+                [
+                    20.0,
+                    0.77985
+                ],
+                [
+                    40.0,
+                    0.765283333
+                ]
+            ]
+        },
+        "VaporPressure": {
+            "unit": "kPa",
+            "data": [
+                [
+                    0.0,
+                    0.04835033
+                ],
+                [
+                    20.0,
+                    0.628554285
+                ],
+                [
+                    40.0,
+                    1.402159558
+                ],
+                [
+                    60.0,
+                    3.432873401
+                ],
+                [
+                    80.0,
+                    7.397600428
+                ],
+                [
+                    100.0,
+                    14.60179954
+                ],
+                [
+                    120.0,
+                    26.59268128
+                ]
+            ]
+        },
+        "Viscosity": {
+            "unit": "mm^2/s",
+            "data": [
+                [
+                    -40.0,
+                    6.6
+                ],
+                [
+                    -20.0,
+                    3.5
+                ],
+                [
+                    40.0,
+                    1.14
+                ],
+                [
+                    100.0,
+                    0.61
+                ]
+            ]
+        },
+        "SurfaceTension": {
+            "unit": "N/m",
+            "data": [
+                [
+                    -10.0,
+                    0.025842439
+                ],
+                [
+                    20.0,
+                    0.023836238
+                ],
+                [
+                    40.0,
+                    0.022833667
+                ]
+            ]
+        },
+        "ThermalConductivity": {
+            "unit": "W/m/K",
+            "data": [
+                [
+                    0.0,
+                    0.129038462
+                ],
+                [
+                    30.0,
+                    0.124038462
+                ],
+                [
+                    40.0,
+                    0.12
+                ],
+                [
+                    60.0,
+                    0.116153846
+                ]
+            ]
+        },
+        "HeatCapacity": {
+            "unit": "kJ/kg/K",
+            "data": [
+                [
+                    -10.0,
+                    2.018461485
+                ],
+                [
+                    0.0,
+                    2.047461358
+                ],
+                [
+                    10.0,
+                    2.07898547
+                ],
+                [
+                    20.0,
+                    2.11025023
+                ],
+                [
+                    30.0,
+                    2.13774594
+                ],
+                [
+                    40.0,
+                    2.18032366
+                ],
+                [
+                    50.0,
+                    2.21013612
+                ],
+                [
+                    60.0,
+                    2.24866239
+                ],
+                [
+                    70.0,
+                    2.28799548
+                ],
+                [
+                    80.0,
+                    2.32905174
+                ],
+                [
+                    90.0,
+                    2.36824652
+                ],
+                [
+                    100.0,
+                    2.4095333
+                ],
+                [
+                    110.0,
+                    2.44825551
+                ],
+                [
+                    120.0,
+                    2.48820526
+                ],
+                [
+                    130.0,
+                    2.52931339
+                ],
+                [
+                    140.0,
+                    2.56860038
+                ],
+                [
+                    150.0,
+                    2.60919559
+                ],
+                [
+                    160.0,
+                    2.66087899
+                ]
+            ]
+        }
+    }
+}

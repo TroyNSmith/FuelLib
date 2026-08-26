@@ -1,10 +1,11 @@
 """Command-line tool to convert transport properties for combustion simulations."""
 
 import argparse
+
 from .. import convert
 
 
-def eps2K_main():
+def epsilon_to_kelvin_main():
     """Convert Lennard-Jones epsilon from J/mol to K via command line."""
     parser = argparse.ArgumentParser(
         description="Convert Lennard-Jones well depth epsilon from J/mol to Kelvin"

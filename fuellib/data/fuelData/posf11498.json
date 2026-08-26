@@ -1,0 +1,243 @@
+{
+    "components": {
+        "C07-Isoparaffin": {
+            "weight_percent": 0.02,
+            "formula": "C7H16",
+            "pelephysics_key": "C7H16-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 3,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C08-Isoparaffin": {
+            "weight_percent": 0.61,
+            "formula": "C8H18",
+            "pelephysics_key": "C8H18-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 4,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C09-Isoparaffin": {
+            "weight_percent": 0.17,
+            "formula": "C9H20",
+            "pelephysics_key": "C9H20-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 5,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C10-Isoparaffin": {
+            "weight_percent": 0.22,
+            "formula": "C10H22",
+            "pelephysics_key": "C10H22-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 6,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C11-Isoparaffin": {
+            "weight_percent": 0.52,
+            "formula": "C11H24",
+            "pelephysics_key": "C11H24-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 7,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C12-Isoparaffin": {
+            "weight_percent": 78.28,
+            "formula": "C12H26",
+            "pelephysics_key": "C12H26-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 8,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C13-Isoparaffin": {
+            "weight_percent": 1.23,
+            "formula": "C13H28",
+            "pelephysics_key": "C13H28-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 9,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C14-Isoparaffin": {
+            "weight_percent": 0.53,
+            "formula": "C14H30",
+            "pelephysics_key": "C14H30-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 10,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C16-Isoparaffin": {
+            "weight_percent": 16.25,
+            "formula": "C16H34",
+            "pelephysics_key": "C16H34-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 12,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C20-Isoparaffin": {
+            "weight_percent": 1.69,
+            "formula": "C20H42",
+            "pelephysics_key": "C20H42-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 16,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C24-Isoparaffin": {
+            "weight_percent": 0.12,
+            "formula": "C24H50",
+            "pelephysics_key": "C24H50-2",
+            "decomposition": {
+                "CH3": 3,
+                "CH2": 20,
+                "CH": 1,
+                "(CH3)2CH": 1
+            }
+        },
+        "C12-Alkene": {
+            "weight_percent": 0.08,
+            "formula": "C12H24",
+            "pelephysics_key": "DODECENE-1",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 9,
+                "CH2=CH": 1
+            }
+        },
+        "C16-Alkene": {
+            "weight_percent": 0.24,
+            "formula": "C16H32",
+            "pelephysics_key": "HEXADECENE-1",
+            "decomposition": {
+                "CH3": 1,
+                "CH2": 13,
+                "CH2=CH": 1
+            }
+        }
+    },
+    "properties": {
+        "temperature_unit": "C",
+        "Density": {
+            "unit": "g/cm^3",
+            "data": [
+                [
+                    4.926624738,
+                    0.766266145
+                ],
+                [
+                    14.98951782,
+                    0.759216842
+                ],
+                [
+                    25.26205451,
+                    0.751886646
+                ],
+                [
+                    35.11530398,
+                    0.744838516
+                ],
+                [
+                    44.96855346,
+                    0.737790386
+                ],
+                [
+                    54.82180294,
+                    0.729903095
+                ],
+                [
+                    64.88469602,
+                    0.722294351
+                ],
+                [
+                    74.9475891,
+                    0.715245048
+                ],
+                [
+                    85.01048218,
+                    0.707356585
+                ]
+            ]
+        },
+        "VaporPressure": {
+            "unit": "kPa",
+            "data": [
+                [
+                    0.0,
+                    0.029250391
+                ],
+                [
+                    19.74128847,
+                    0.10137713
+                ],
+                [
+                    39.69930983,
+                    0.144264166
+                ],
+                [
+                    59.66534646,
+                    0.36989935
+                ],
+                [
+                    79.41849753,
+                    0.741743738
+                ],
+                [
+                    99.40473264,
+                    1.427904253
+                ],
+                [
+                    119.4195021,
+                    2.764648172
+                ]
+            ]
+        },
+        "Viscosity": {
+            "unit": "mm^2/s",
+            "data": [
+                [
+                    -39.78658537,
+                    10.41126684
+                ],
+                [
+                    -20.15243902,
+                    4.996496178
+                ],
+                [
+                    25.09146341,
+                    1.914179104
+                ],
+                [
+                    40.0304878,
+                    1.535971059
+                ]
+            ]
+        }
+    }
+}
