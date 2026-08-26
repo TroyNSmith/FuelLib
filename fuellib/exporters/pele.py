@@ -651,7 +651,7 @@ def main():
     :param --fuel_name: Name of the fuel (mandatory).
     :type --fuel_name: str
 
-    :param --fuel_data_dir: Directory where fuel data files are located. Default is FuelLib/fuelData.
+    :param --fuel_data_dir: Directory where fuel data files are located. Default is FuelLib/fuel.
     :type --fuel_data_dir: str, optional
 
     :param --units: Units for critical properties. Options are "mks" (default) or "cgs".
@@ -701,7 +701,7 @@ def main():
         "--fuel_data_dir",
         default=FUELDATA_DIR,
         metavar="PATH",
-        help="Directory where fuel data files are located (optional, default: FuelLib/fuelData).",
+        help="Directory where fuel data files are located (optional, default: FuelLib/fuel).",
     )
 
     # Optional argument for units

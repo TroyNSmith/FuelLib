@@ -410,5 +410,14 @@
                 ]
             ]
         }
+    },
+    "metadata": {
+        "name": "n-Dodecane",
+        "category": "Simple",
+        "source": "NIST",
+        "reference": null,
+        "description": "100% n-dodecane",
+        "decomp_name": "dodecane",
+        "props_data": "dodecane"
     }
 }

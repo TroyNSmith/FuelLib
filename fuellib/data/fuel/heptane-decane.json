@@ -16,5 +16,14 @@
                 "CH2": 8
             }
         }
+    },
+    "metadata": {
+        "name": "n-Heptane/n-Decane Blend",
+        "category": "Simple",
+        "source": null,
+        "reference": null,
+        "description": "50/50 (mass) blend of n-heptane and n-decane",
+        "decomp_name": "heptane-decane",
+        "props_data": null
     }
 }

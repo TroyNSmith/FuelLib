@@ -7,7 +7,7 @@ print(f"Fuel: {fuel.name}")
 print(f"Number of compounds: {fuel.num_compounds}")
 
 # To use a custom fuel, create a directory containing one "<name>.json" file per
-# fuel (see fuellib/data/fuelData/decane.json for the expected schema):
+# fuel (see fuellib/data/fuel/decane.json for the expected schema):
 #
 # customFuels/fuelData/
 #   └── hefa-S1.json

@@ -9,7 +9,7 @@ from fuellib.utils.units import ureg
 # Calculate mixture properties from the group contribution properties
 # -----------------------------------------------------------------------------
 
-# Fuel for GCM and data for validation (see fuelData/propertiesData for fuels)
+# Fuel for GCM and data for validation (see fuel/propertiesData for fuels)
 # Options: 'decane','dodecane', 'heptane', 'posf10264', 'posf10325', 'posf10289'
 # fuel_names = ["heptane","decane","dodecane"]
 fuel_names = ["posf10264", "posf10325", "posf10289"]

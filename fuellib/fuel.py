@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 from pint import Quantity
@@ -32,6 +32,11 @@ class Fuel(BaseModel):
         default_factory=dict,
         repr=False,
         description="Raw mixture-level validation data from the 'properties' JSON block",
+    )
+    metadata: dict = Field(
+        default_factory=dict,
+        repr=False,
+        description="Raw fuel-level metadata from the 'metadata' JSON block",
     )
 
     def model_post_init(self, __context, /) -> None:
@@ -257,6 +262,7 @@ class Fuel(BaseModel):
             components=components,
             method=method,
             properties=data.get("properties", {}),
+            metadata=data.get("metadata", {}),
         )
 
     @classmethod
@@ -997,7 +1003,9 @@ def experimental_property(fuel: Fuel, prop_name: str) -> tuple[Quantity, Quantit
     entry = fuel.properties[prop_name]
     temperature_arr, val_arr = np.array(entry["data"]).T
 
-    temperature = (ureg(temp_unit) * temperature_arr).to("K")
+    # degC/degF are offset units; must build the Quantity directly rather than
+    # multiplying, which pint disallows for offset units.
+    temperature = cast(Quantity, Quantity(temperature_arr, temp_unit).to("K"))
     values = ureg(entry["unit"]) * val_arr
     return temperature, values
 

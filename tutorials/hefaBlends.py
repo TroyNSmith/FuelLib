@@ -10,7 +10,7 @@ from fuellib.utils.units import ureg
 # Calculate mixture properties from the group contribution properties
 # -----------------------------------------------------------------------------
 
-# HEFA fuels from various feedstocks (see fuelData/propertiesData for fuels)
+# HEFA fuels from various feedstocks (see fuel/propertiesData for fuels)
 fuel_names = ["hefa-mfat", "hefa-came", "hefa-tall"]
 conv_fuel_name = "jet-a"
 blends = np.linspace(0, 100, 100)  # Weight percentages of hefa in blend

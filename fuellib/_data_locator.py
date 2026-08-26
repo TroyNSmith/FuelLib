@@ -44,10 +44,10 @@ def get_fueldata_dir():
     """
     Get the path to FuelLib's fuel data directory.
 
-    :return: Absolute path to embedded fuelData directory.
+    :return: Absolute path to embedded fuel directory.
     :rtype: str
     """
-    return os.path.join(get_data_dir(), "fuelData")
+    return os.path.join(get_data_dir(), "fuel")
 
 
 def get_fueldata_props_dir():
@@ -57,7 +57,7 @@ def get_fueldata_props_dir():
     This directory holds supplementary experimental validation data that isn't tied
     to a single fuel's JSON file (e.g. blend comparisons). It is optional.
 
-    :return: Absolute path to embedded fuelData/propertiesData directory, or None if not found.
+    :return: Absolute path to embedded fuel/propertiesData directory, or None if not found.
     :rtype: str or None
     """
     props_dir = os.path.join(get_fueldata_dir(), "propertiesData")

@@ -382,5 +382,14 @@
                 ]
             ]
         }
+    },
+    "metadata": {
+        "name": "n-Decane",
+        "category": "Simple",
+        "source": "NIST",
+        "reference": null,
+        "description": "100% n-decane",
+        "decomp_name": "decane",
+        "props_data": "decane"
     }
 }

@@ -713,5 +713,13 @@
                 "6 membered ring": 1
             }
         }
+    },
+    "metadata": {
+        "name": "POSF4658",
+        "category": "Conventional",
+        "source": "Edwards et al. (2017)",
+        "reference": "https://doi.org/10.2514/6.2017-0146",
+        "description": "2004 physical average jet fuel constructed by blending 5 separate jet fuels from across the U.S.",
+        "decomp_name": "posf-cat-a"
     }
 }

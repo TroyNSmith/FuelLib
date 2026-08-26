@@ -12,5 +12,5 @@ comp = Component(name="test", decomposition={("CH3", 2), ("CH2", 1)})
 
 method = ConstantinouMethod()
 
-fuel = Fuel.from_json("fuellib/data/fuelData/decane.json")
+fuel = Fuel.from_json("fuellib/data/fuel/decane.json")
 print(fl.fuel.mixture_density(fuel, Yi=fuel.Y_0, T=350 * ureg("degC")))

@@ -393,5 +393,14 @@
                 ]
             ]
         }
+    },
+    "metadata": {
+        "name": "n-Heptane",
+        "category": "Simple",
+        "source": "NIST",
+        "reference": null,
+        "description": "100% n-heptane",
+        "decomp_name": "heptane",
+        "props_data": "heptane"
     }
 }

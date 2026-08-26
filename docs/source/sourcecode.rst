@@ -23,7 +23,7 @@ FuelLib File Organization
     
     - **data**: directory containing fuel data and metadata    
         
-        - **fuelData:** 
+        - **fuel:** 
             - **gcData:** directory containing a collection of GCxGC compositional data by weight percentages
             - **groupDecompositionData:** directory containing a collection of functional group decompositions
             - **propertiesData:** directory containing measurement or predicted data used for validation

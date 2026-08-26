@@ -25,10 +25,10 @@ Required Input Files
 
 FuelLib comes with a variety of built-in fuels with pre-populated input files, but you can also add your own custom fuels by providing the required input files. Each fuel requires two input files:
 
-- ``fuellib/data/fuelData/gcData/<fuel_name>_init.csv``: the initial weight percentage composition of the fuel components (must include columns "Compound" and "Weight %")
-- ``fuellib/data/fuelData/groupDecompositionData/<fuel_name>.csv``: the fundamental group decomposition for each component of the fuel (must have columns for groups in the same order as `gcmTable <https://github.com/NatLabRockies/FuelLib/blob/main/fuellib/data/gcmTableData/gcmTable.csv>`_)
+- ``fuellib/data/fuel/gcData/<fuel_name>_init.csv``: the initial weight percentage composition of the fuel components (must include columns "Compound" and "Weight %")
+- ``fuellib/data/fuel/groupDecompositionData/<fuel_name>.csv``: the fundamental group decomposition for each component of the fuel (must have columns for groups in the same order as `gcmTable <https://github.com/NatLabRockies/FuelLib/blob/main/fuellib/data/gcmTableData/gcmTable.csv>`_)
 
-These two required files must have the same number of rows and the same order of components. Many examples can be found in the `fuellib/data/fuelData <https://github.com/NatLabRockies/FuelLib/tree/main/fuellib/data/fuelData>`_ directory in the repository. When working with an installed package, prefer ``fuellib.get_fueldata_dir()`` to discover the local fuel-data directory instead of hard-coding package paths.
+These two required files must have the same number of rows and the same order of components. Many examples can be found in the `fuellib/data/fuel <https://github.com/NatLabRockies/FuelLib/tree/main/fuellib/data/fuel>`_ directory in the repository. When working with an installed package, prefer ``fuellib.get_fueldata_dir()`` to discover the local fuel-data directory instead of hard-coding package paths.
 
 **Fuel Metadata**
 
@@ -70,7 +70,7 @@ the remaining branch with a single CH3 group bonded to a CH2 group is not define
     All group decomposition files must follow the groups defined in `gcmTable`_, there are :math:`N_{g1} = 78` 
     first-order groups and :math:`N_{g2} = 43` second order groups. The second-order groups start with the 
     branching structure `(CH3)2CH`. Not all branching structures are defined in the `gcmTable`_. We recommend
-    starting with `fuellib/data/fuelData/groupDecompositionData/refCompounds.csv` and adapting the decompositions and compounds for your fuel. 
+    starting with `fuellib/data/fuel/groupDecompositionData/refCompounds.csv` and adapting the decompositions and compounds for your fuel. 
 
 Basic Usage
 ^^^^^^^^^^^
@@ -78,7 +78,7 @@ Basic Usage
 To demonstrate the usage of FuelLib, we will use the fuel "heptane-decane", which is a 
 binary mixture of heptane and decane. The initial weight percentage composition is 73.75% 
 heptane and 26.25% decane, and the group decomposition data is provided in the
-`groupDecompositionData <https://github.com/NatLabRockies/FuelLib/tree/main/fuelData/groupDecompositionData>`_ directory.
+`groupDecompositionData <https://github.com/NatLabRockies/FuelLib/tree/main/fuel/groupDecompositionData>`_ directory.
 The following tutorial is included in the `FuelLib/tutorials <https://github.com/NatLabRockies/FuelLib/tree/main/tutorials>`_
 as ``basic.py``. To begin, we will import the necessary modules and create a ``fuel`` object for the two component fuel "heptane-decane": 
 

@@ -91,7 +91,9 @@ def _build_properties(props_file: Path) -> dict | None:
     return properties
 
 
-def convert_fuel(fuel_data_dir: Path, name: str, decomp_name: str) -> dict:
+def convert_fuel(
+    fuel_data_dir: Path, name: str, decomp_name: str, metadata: dict | None = None
+) -> dict:
     """Build the full per-fuel JSON payload for a single fuel."""
     df_gc = _read_gc_data(fuel_data_dir / "gcData", name)
     df_decomp = _read_decomposition(
@@ -103,6 +105,9 @@ def convert_fuel(fuel_data_dir: Path, name: str, decomp_name: str) -> dict:
     properties = _build_properties(fuel_data_dir / "propertiesData" / f"{name}.csv")
     if properties is not None:
         payload["properties"] = properties
+
+    if metadata:
+        payload["metadata"] = metadata
 
     return payload
 
@@ -117,9 +122,9 @@ def main():
     )
     parser.add_argument(
         "--fuel-data-dir",
-        default=Path(__file__).resolve().parents[1] / "fuellib" / "data" / "fuelData",
+        default=Path(__file__).resolve().parents[1] / "fuellib" / "data" / "fuel",
         type=Path,
-        help="Fuel data directory (default: embedded fuellib/data/fuelData).",
+        help="Fuel data directory (default: embedded fuellib/data/fuel).",
     )
     parser.add_argument(
         "--force",
@@ -140,8 +145,11 @@ def main():
             print(f"skip  {name} (already exists, use --force to overwrite)")
             continue
 
-        decomp_name = metadata.get(name, {}).get("decomp_name", name)
-        payload = convert_fuel(args.fuel_data_dir, name, decomp_name)
+        fuel_metadata = metadata.get(name, {})
+        decomp_name = fuel_metadata.get("decomp_name", name)
+        payload = convert_fuel(
+            args.fuel_data_dir, name, decomp_name, metadata=fuel_metadata
+        )
         out_file.write_text(json.dumps(payload, indent=4))
         print(f"wrote {out_file}")
 

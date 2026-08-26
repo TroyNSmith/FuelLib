@@ -121,7 +121,7 @@ Additional Options
 There are many additional options that can be specified when running the ``fl-export-pele`` command:
 
 - ``-decomp, --fuel_decomp_name NAME``: Name of the decomposition file (optional). If not provided, defaults to fuel name.
-- ``-dir, --fuel_data_dir PATH``: Directory containing the fuel data files. Default: ``FuelLib/fuelData``.
+- ``-dir, --fuel_data_dir PATH``: Directory containing the fuel data files. Default: ``FuelLib/fuel``.
 - ``-u, --units {mks,cgs}``: Units for the properties. Default: ``mks`` (use ``cgs`` for PeleC).
 - ``-dep, --dep_fuel_names NAME [NAME ...]``: Gas-phase species that liquid fuel deposits to. Default: fuel compound names.
 - ``-pp, --use_pp_keys {true,false}``: Use PelePhysics keys for each compound. Default: ``true``.

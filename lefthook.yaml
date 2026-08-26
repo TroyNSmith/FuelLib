@@ -1,0 +1,22 @@
+pre-commit:
+  parallel: false
+  exclude:
+    - .pixi/
+  commands:
+    1-fmt:
+      run: pixi run fmt
+
+    2-lint:
+      run: pixi run lint
+
+    3-types:
+      run: pixi run types
+
+    4-imports:
+      run: pixi run imports
+
+    5-test:
+      run: pixi run test
+
+    6-check-clean:
+      run: git diff --exit-code

@@ -51,6 +51,8 @@ dev = [
     "ty>=0.0.74",
     "ruff>=0.16.4",
     "pytest-cov>=7.1.0",
+    "lefthook>=2.1.11",
+    "import-linter>=2.13",
 ]
 
 [project.scripts]
@@ -124,6 +126,22 @@ include = [
     "tests",
 ]
 
+# Import-linter configurations
+[tool.importlinter]
+root_package = "fuellib"
+
+[[tool.importlinter.contracts]]
+name = "Module layering"
+type = "layers"
+layers = [
+    "fuellib.fuel",
+    "fuellib.gcm",
+    "fuellib.comp",
+]
+ignore_imports = [
+    "fuellib.comp -> fuellib.gcm.core",
+]
+
 # Pytest configurations
 [tool.pytest.ini_options]
 testpaths = [
@@ -168,7 +186,9 @@ dev = { features = ["dev"], solve-group = "default" }
 fmt = "ruff format ."
 lint = "ruff check . --fix"
 types = "ty check"
+imports = "lint-imports"
 test = "pytest"
+pre-commit = "lefthook run pre-commit --all-files"
 # Build and clean documentation
 docs-build = "sphinx-build docs/source docs/build"
 docs-clean = "rm -rf docs/build"

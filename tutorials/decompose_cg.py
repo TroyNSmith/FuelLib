@@ -14,7 +14,7 @@ alpha-olefins, alkylbenzenes, alkylnaphthalenes, monocycloparaffins,
 dicycloparaffins, cycloaromatics).
 
 Validation: compared against existing hand-decomposed data in
-FuelLib/fuelData/groupDecompositionData/refCompounds.csv
+FuelLib/fuel/groupDecompositionData/refCompounds.csv
 """
 
 import csv
@@ -617,7 +617,7 @@ def _load_refcompounds():
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "fuellib",
         "data",
-        "fuelData",
+        "fuel",
         "groupDecompositionData",
         "refCompounds.csv",
     )

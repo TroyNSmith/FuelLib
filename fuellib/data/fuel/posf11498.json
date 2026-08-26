@@ -239,5 +239,13 @@
                 ]
             ]
         }
+    },
+    "metadata": {
+        "name": "C-1 POSF11498 ATJ",
+        "category": "SATF",
+        "source": "Edwards et al. (2020)",
+        "reference": "https://apps.dtic.mil/sti/pdfs/AD1093317.pdf",
+        "description": "Atypical alternative fuel from NJFCP. Isoparaffinic-only with low density, average viscosity, and a flat distillation curve.",
+        "decomp_name": "posf11498"
     }
 }
