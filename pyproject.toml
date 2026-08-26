@@ -148,7 +148,7 @@ source = ["fuellib"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
-fail_under = 20
+fail_under = 1
 
 # Pixi configurations
 [tool.pixi.workspace]

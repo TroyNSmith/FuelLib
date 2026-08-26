@@ -33,6 +33,8 @@ used to parse and validate this file's entries against that format.
   - UP036: Updated outdated Python version check in `fuellib/_data_locator.py`.
   - PLC0206: Fixed dictionary iteration to use `.items()` in `tests/baselinePredictions/generate_baseline.py`.
 
+- Addressed 10+ ty typing errors across the codebase.
+
 ## [3.0.1] - 2026-06-25
 
 ### Added
