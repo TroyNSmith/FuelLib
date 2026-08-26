@@ -1005,7 +1005,7 @@ def experimental_property(fuel: Fuel, prop_name: str) -> tuple[Quantity, Quantit
 
     # degC/degF are offset units; must build the Quantity directly rather than
     # multiplying, which pint disallows for offset units.
-    temperature = cast(Quantity, Quantity(temperature_arr, temp_unit).to("K"))
+    temperature = cast(Quantity, ureg.Quantity(temperature_arr, temp_unit).to("K"))
     values = ureg(entry["unit"]) * val_arr
     return temperature, values
 
