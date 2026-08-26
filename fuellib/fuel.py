@@ -1,24 +1,28 @@
 """Fuel class for Group Contribution Method calculations."""
 
 import os
+import warnings
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel
 from scipy.optimize import curve_fit
 
-from .constants import k_B, N_A
-from .convert import K2C
-from .utility import mixing_rule
 from ._data_locator import (
-    get_gcmtable_dir,
+    get_fueldata_decomp_dir,
     get_fueldata_dir,
     get_fueldata_gc_dir,
-    get_fueldata_decomp_dir,
     get_fueldata_props_dir,
+    get_gcmtable_dir,
     get_metadata_decomp_name,
 )
+from .constants import N_A, k_B
+from .convert import K2C
+from .utility import mixing_rule
 
 
-class fuel:
+class Fuel:
     """
     Class for handling group contribution calculations of thermodynamic and mixture properties.
 
@@ -155,8 +159,8 @@ class fuel:
         else:
             # Validate and use custom fuel directory
             from ._data_locator import (
-                _validate_fuel_data_dir,
                 _get_props_dir_for_fueldata,
+                _validate_fuel_data_dir,
             )
 
             _validate_fuel_data_dir(fuelDataDir)

@@ -1,5 +1,18 @@
 ## Major Changes
 
+### newFeature
+
+#### Environment management
+- Restricted Python to >=3.10,<3.14 (black>=26.3.1 depends on Python>=3.10).
+- Configured pyproject.toml to support [pixi environment management.](https://pixi.prefix.dev/latest/)
+
+
+#### Module Organization
+- **Converted `fuel` to `Fuel` (avoids namespace clash; complies with PEP-8)**
+  - `warning` added to `fuel.__init__()` method guiding users to `Fuel`.
+  - `Fuel` inherits from `Pydantic BaseModel` to provide type safety and model validation.
+
+
 ### Module Organization & Architecture
 - **Split monolithic `FuelLib.py` into modules:**
   - `constants.py` - Physical constants (k_B, N_A)

@@ -15,27 +15,29 @@ except Exception:
     __version__ = "unknown"
 
 # Import fuel class
-from .fuel import fuel
+# Import submodules for namespacing
+from . import constants, convert, gcm, utility
 
 # Import data locator functions
 from ._data_locator import *
-
-# Import submodules for namespacing
-from . import constants
-from . import convert
-from . import utility
+from .comp import Component
+from .fuel import Fuel
+from .fuel_upd import FuelNew
 
 __all__ = [
-    "fuel",
-    "get_data_dir",
-    "get_gcmtable_dir",
-    "get_fueldata_dir",
-    "get_fueldata_gc_dir",
-    "get_fueldata_decomp_dir",
-    "get_fueldata_props_dir",
-    "get_metadata_decomp_name",
-    "get_metadata_props_data",
+    "Component",
+    "Fuel",
+    "FuelNew",
     "constants",
     "convert",
+    "gcm",
+    "get_data_dir",
+    "get_fueldata_decomp_dir",
+    "get_fueldata_dir",
+    "get_fueldata_gc_dir",
+    "get_fueldata_props_dir",
+    "get_gcmtable_dir",
+    "get_metadata_decomp_name",
+    "get_metadata_props_data",
     "utility",
 ]

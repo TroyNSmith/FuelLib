@@ -89,11 +89,11 @@ class TestHCIdentification:
     def test_hc_identification(self, fuel_name):
         """Comprehensive test for HC identification: nC, nH, hc_type, and compound classification."""
         # Load fuel
-        fuel = fl.fuel(fuel_name)
+        fuel = fl.Fuel(fuel_name)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Fuel: {fuel_name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Compounds: {fuel.num_compounds}")
 
         # === Test 1: nC matches reference formula ===
@@ -189,9 +189,9 @@ class TestHCIdentification:
                         f"{compound}: should be aromatic but got '{hc_type}'"
                     )
 
-        assert (
-            not mismatches
-        ), f"Aromatic compounds not correctly identified:\n" + "\n".join(mismatches)
+        assert not mismatches, (
+            f"Aromatic compounds not correctly identified:\n" + "\n".join(mismatches)
+        )
         aromatic_count = len(aromatic_names) if aromatic_names else 0
         print(f"✓ aromatic compounds identified correctly ({aromatic_count} found)")
 
@@ -208,9 +208,9 @@ class TestHCIdentification:
                         f"{compound}: should be n-alkane but got '{hc_type}'"
                     )
 
-        assert (
-            not mismatches
-        ), f"n-alkane compounds not correctly identified:\n" + "\n".join(mismatches)
+        assert not mismatches, (
+            f"n-alkane compounds not correctly identified:\n" + "\n".join(mismatches)
+        )
         nalkane_count = len(nalkane_names) if nalkane_names else 0
         print(f"✓ n-alkane compounds identified correctly ({nalkane_count} found)")
 
@@ -230,9 +230,9 @@ class TestHCIdentification:
                         f"{compound}: should be cyclo-alkane but got '{hc_type}'"
                     )
 
-        assert (
-            not mismatches
-        ), f"Cycloalkane compounds not correctly identified:\n" + "\n".join(mismatches)
+        assert not mismatches, (
+            f"Cycloalkane compounds not correctly identified:\n" + "\n".join(mismatches)
+        )
         cyclo_count = len(cyclo_names) if cyclo_names else 0
         print(f"✓ cyclo-alkane compounds identified correctly ({cyclo_count} found)")
 
@@ -249,9 +249,9 @@ class TestHCIdentification:
                         f"{compound}: should be iso-alkane but got '{hc_type}'"
                     )
 
-        assert (
-            not mismatches
-        ), f"iso-alkane compounds not correctly identified:\n" + "\n".join(mismatches)
+        assert not mismatches, (
+            f"iso-alkane compounds not correctly identified:\n" + "\n".join(mismatches)
+        )
         isoalkane_count = len(isoalkane_names) if isoalkane_names else 0
         print(f"✓ iso-alkane compounds identified correctly ({isoalkane_count} found)")
 
@@ -266,8 +266,8 @@ class TestHCIdentification:
                         f"{compound}: should be alkene but got '{hc_type}'"
                     )
 
-        assert (
-            not mismatches
-        ), f"Alkene compounds not correctly identified:\n" + "\n".join(mismatches)
+        assert not mismatches, (
+            f"Alkene compounds not correctly identified:\n" + "\n".join(mismatches)
+        )
         alkene_count = len(alkene_names) if alkene_names else 0
         print(f"✓ alkene compounds identified correctly ({alkene_count} found)")
