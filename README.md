@@ -83,5 +83,5 @@ Then use the provided CLI command:
 fl-build-docs
 ~~~
 
-The HTML documentation will be generated in `docs/_build/html/`. Open `docs/_build/html/index.html` in your web browser to view it. 
+The HTML documentation will be generated in `docs/build/html/`. Open `docs/build/html/index.html` in your web browser to view it. 
 

@@ -54,7 +54,7 @@ To build the documentation after installing with ``pip install -e '.[dev]'``:
 
    fl-build-docs
 
-The built documentation will be in ``docs/_build/html/``. Open ``index.html`` in your browser to view it.
+The built documentation will be in ``docs/build/html/``. Open ``index.html`` in your browser to view it.
 
 To clean the build artifacts:
 

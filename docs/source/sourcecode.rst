@@ -8,7 +8,10 @@ This page provides an overview of the source code available at `github.com/NatLa
 FuelLib File Organization
 -------------------------
 
-- **docs:** directory containing the documentation source files
+- **docs:** directory containing the documentation
+
+    - **source:** documentation source files (rst, conf.py, images)
+    - **build:** generated documentation output (not tracked in version control)
 - **gcmTableData:** directory that contains the pre-tabulated group contributions
 - **fuellib:** main package directory containing:
 

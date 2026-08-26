@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from .utils.units import ureg
+from .units import ureg
 
 
 def mixing_rule(component_values, mole_fractions, pseudo_prop="arithmetic"):
@@ -59,7 +59,7 @@ def droplet_mass(fuel, radius, mass_fractions, temperature):
     :return: Mass of each compound in droplet, in kg.
     :rtype: pint.Quantity
     """
-    from .fuel import (
+    from ..fuel import (
         molar_liquid_vol,
     )  # local import avoids circular import with fuel.py
 

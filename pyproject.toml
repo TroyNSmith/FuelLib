@@ -50,6 +50,7 @@ dev = [
     "codespell>=2.2.0",
     "ty>=0.0.74",
     "ruff>=0.16.4",
+    "pytest-cov>=7.1.0",
 ]
 
 [project.scripts]
@@ -123,6 +124,30 @@ include = [
     "tests",
 ]
 
+# Pytest configurations
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "fuellib",
+]
+addopts = [
+    "--doctest-modules",
+    "--cov=fuellib",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+doctest_optionflags = "NORMALIZE_WHITESPACE"
+
+# Pytest coverage configurations
+[tool.coverage.run]
+branch = true
+source = ["fuellib"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+
 # Pixi configurations
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -139,7 +164,11 @@ default = { solve-group = "default" }
 dev = { features = ["dev"], solve-group = "default" }
 
 [tool.pixi.feature.dev.tasks]
+# Pre-commit hooks
 fmt = "ruff format ."
 lint = "ruff check . --fix"
 types = "ty check"
 test = "pytest"
+# Build and clean documentation
+docs-build = "sphinx-build docs/source docs/build"
+docs-clean = "rm -rf docs/build"

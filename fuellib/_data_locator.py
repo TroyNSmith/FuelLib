@@ -6,14 +6,8 @@ within the fuellib package using importlib.resources.
 """
 
 import os
-import sys
+from importlib.resources import files
 from pathlib import Path
-
-if sys.version_info >= (3, 9):
-    from importlib.resources import files
-else:
-    from importlib_resources import files
-
 
 __all__ = [
     "get_data_dir",

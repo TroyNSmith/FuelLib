@@ -14,7 +14,7 @@ from ._data_locator import get_fueldata_dir
 from .comp import Component
 from .gcm import ConstantinouMethod
 from .gcm.core import BaseMethod
-from .utility import mixing_rule
+from .utils.helpers import mixing_rule
 from .utils.units import ureg
 
 
@@ -34,7 +34,7 @@ class Fuel(BaseModel):
         description="Raw mixture-level validation data from the 'properties' JSON block",
     )
 
-    def model_post_init(self, __context) -> None:
+    def model_post_init(self, __context, /) -> None:
         """Assign method to all components after initialization."""
         for comp, _ in self.components:
             if comp.method is None:
@@ -838,7 +838,7 @@ def diffusion_coeff(
     temperature: Quantity,
     collision_diameter_gas: Quantity = 3.62e-10 * ureg.m,
     epsilon_over_kb_gas: Quantity = 97.0 * ureg.kelvin,
-    molecular_weight_gas: Quantity = 28.97e-3 * ureg("kg/mol"),
+    molecular_weight_gas: Quantity = 28.97e-3 * ureg.kg / ureg.mol,
     correlation: Literal["Tee", "Wilke"] = "Tee",
 ) -> Quantity:
     """Compute diffusion coefficients using Lennard-Jones parameters.

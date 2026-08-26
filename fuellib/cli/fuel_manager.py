@@ -7,6 +7,7 @@ in the FuelLib database, including source information and metadata.
 
 import argparse
 import os
+import sys
 import warnings
 
 import fuellib as fl
@@ -94,14 +95,14 @@ def list_fuels_main():
         # List all fuel files in the fuel data directory
         if not os.path.exists(fuel_data_dir):
             print(f"Error: Fuel data directory not found: {fuel_data_dir}")
-            exit(1)
+            sys.exit(1)
 
         # Extract fuel names from <name>.json files
         fuel_names = fl.list_fuel_names(fuel_data_dir)
 
         if not fuel_names:
             print("No fuels found in the specified directory.")
-            exit(0)
+            sys.exit(0)
 
         # Load metadata from the appropriate location
         metadata = load_fuel_metadata(metadata_dir)
@@ -148,6 +149,6 @@ def list_fuels_main():
             )
         print("=" * 80 + "\n")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - CLI boundary, report any failure to the user
         print(f"Error listing fuels: {e}")
-        exit(1)
+        sys.exit(1)

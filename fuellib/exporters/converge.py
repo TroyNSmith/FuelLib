@@ -378,11 +378,11 @@ def export_converge(
             )
 
             # Generic mixing rules for latent heat and specific heat
-            latent_heat[k] = fl.utility.mixing_rule(
+            latent_heat[k] = fl.helpers.mixing_rule(
                 fl.fuel.latent_heat_vaporization(fuel, T_q).to("J/kg").magnitude,
                 mole_fractions,
             )  # J/kg
-            specific_heat_mass[k] = fl.utility.mixing_rule(
+            specific_heat_mass[k] = fl.helpers.mixing_rule(
                 fl.fuel.mass_heat_capacity(fuel, T_q).to("J/kg/K").magnitude,
                 mole_fractions,
             )  # J/kg/K
@@ -500,8 +500,8 @@ def export_converge(
         mole_fractions_init = fl.fuel.mass_fraction_to_mole_fraction(
             fuel, fuel.initial_mass_fractions
         )
-        T_freeze = fl.utility.mixing_rule(Tm_arr, mole_fractions_init)
-        T_crit = fl.utility.mixing_rule(Tc_arr, mole_fractions_init)
+        T_freeze = fl.helpers.mixing_rule(Tm_arr, mole_fractions_init)
+        T_crit = fl.helpers.mixing_rule(Tc_arr, mole_fractions_init)
 
         print(f"\nEstimated mixture freezing temp: {T_freeze:.2f} K")
         print(f"Min freezing temp min(Tm_i): {Tm_arr.min():.2f} K")

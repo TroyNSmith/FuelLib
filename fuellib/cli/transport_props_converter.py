@@ -2,7 +2,7 @@
 
 import argparse
 
-from .. import convert
+from ..utils import convert
 
 
 def epsilon_to_kelvin_main():

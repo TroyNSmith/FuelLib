@@ -38,7 +38,9 @@ class ConstantinouMethod(BaseMethod):
     def load_groups(self) -> None:
         """Load the groups for the Constantinou and Gani method."""
         self.groups = pd.read_csv(
-            Path(__file__).parent / "constantinou.csv", header=0, index_col=0
+            Path(__file__).parent.parent / "data/gcm/constantinou.csv",
+            header=0,
+            index_col=0,
         )
 
         if not set(self._contributions.keys()).issubset(self.groups.index):

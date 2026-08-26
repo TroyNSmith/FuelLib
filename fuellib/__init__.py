@@ -8,19 +8,20 @@ See :class:`Fuel` for the main class and complete API documentation.
 """
 
 try:
-    from importlib.metadata import version
+    from importlib.metadata import PackageNotFoundError, version
 
     __version__ = version("fuellib")
-except Exception:
+except PackageNotFoundError:
     __version__ = "unknown"
 
 # Import submodules for namespacing
-from . import comp, constants, convert, fuel, gcm, utility
+from . import comp, fuel, gcm
 
 # Import data locator functions
 from ._data_locator import *
 from .comp import Component
 from .fuel import Fuel
+from .utils import constants, convert, helpers
 
 __all__ = [
     "Component",
@@ -34,6 +35,6 @@ __all__ = [
     "get_fueldata_dir",
     "get_fueldata_props_dir",
     "get_gcmtable_dir",
+    "helpers",
     "list_fuel_names",
-    "utility",
 ]

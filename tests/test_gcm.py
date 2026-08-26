@@ -51,9 +51,11 @@ class TestLoadGroups:
 
     def test_missing_required_index_raises(self):
         bad_df = pd.DataFrame({"CH3": [1.0]}, index=["pck"])  # missing "tck" etc.
-        with patch("fuellib.gcm.constantinou.pd.read_csv", return_value=bad_df):
-            with pytest.raises(ValueError, match="missing required index columns"):
-                ConstantinouMethod()
+        with (
+            patch("fuellib.gcm.constantinou.pd.read_csv", return_value=bad_df),
+            pytest.raises(ValueError, match="missing required index columns"),
+        ):
+            ConstantinouMethod()
 
 
 # --- get_contributions / _sum_contributions ---

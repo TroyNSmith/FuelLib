@@ -6,7 +6,6 @@ This module provides functions for visualizing:
 - Mixture properties over a temperature range
 """
 
-import argparse
 import os
 
 import matplotlib.pyplot as plt
@@ -15,6 +14,10 @@ import pandas as pd
 
 import fuellib as fl
 from fuellib.utils.units import Q_, ureg
+
+# ---------------------------------------------------------------------------
+# Composition plotting
+# ---------------------------------------------------------------------------
 
 
 def plot_composition(
@@ -147,7 +150,7 @@ def plot_composition(
     family_weights_sorted = family_weights[families_present]
 
     # Create pie chart without labels/percentages (we'll add them outside)
-    wedges, texts = ax2.pie(
+    wedges, _texts = ax2.pie(
         family_weights_sorted,
         labels=None,
         autopct=None,
@@ -178,7 +181,7 @@ def plot_composition(
             va="center",
             fontsize=14,
             fontweight="bold",
-            arrowprops=dict(arrowstyle="-", color="black", lw=1.5),
+            arrowprops={"arrowstyle": "-", "color": "black", "lw": 1.5},
         )
 
     ax2.axis("equal")
@@ -216,6 +219,11 @@ def plot_composition(
         plt.show()
     else:
         plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Mixture property plotting
+# ---------------------------------------------------------------------------
 
 
 def plot_mixture_properties(
@@ -275,19 +283,6 @@ def plot_mixture_properties(
         "VaporPressure": [0, 125],
         "SurfaceTension": [-10, 40],
         "ThermalConductivity": [0, 60],
-    }
-
-    # Deprecated: fuel-specific ranges (kept for reference, now using property-based)
-    default_ranges = {
-        "posf10264": [-40, 125],
-        "posf10325": [-40, 125],
-        "posf10289": [-40, 125],
-        "posf11498": [-40, 125],
-        "jet-a": [-40, 125],
-        "hefa": [-40, 125],
-        "decane": [-50, 100],
-        "dodecane": [-50, 100],
-        "heptane": [-50, 100],
     }
 
     # Y-axis labels
@@ -444,7 +439,7 @@ def plot_mixture_properties(
                         .to("W/m/K")
                         .magnitude
                     )
-            except Exception:
+            except Exception:  # noqa: BLE001 - skip point on any computation failure
                 pred[i] = np.nan
 
         return temperature_data, property_data, temperature_pred, pred
@@ -515,272 +510,3 @@ def plot_mixture_properties(
         plt.show()
     else:
         plt.close(fig)
-
-
-def comp_main():
-    """
-    Entry point for fl-plt-comp command - Plot fuel composition.
-    """
-    parser = argparse.ArgumentParser(
-        description="Plot fuel composition by compound and chemical family."
-    )
-
-    # Fuel name (required)
-    parser.add_argument(
-        "-f",
-        "--fuel_name",
-        required=True,
-        metavar="NAME",
-        help="Name of the fuel to plot (required).",
-    )
-    parser.add_argument(
-        "-dir",
-        "--fuel_data_dir",
-        default=None,
-        metavar="PATH",
-        help="Directory where fuel data files are located (optional).",
-    )
-    parser.add_argument(
-        "-o",
-        "--output_dir",
-        default=None,
-        metavar="PATH",
-        help="Directory to save the plot (optional, default: current directory).",
-    )
-    parser.add_argument(
-        "-t",
-        "--title",
-        default=None,
-        metavar="TITLE",
-        help="Title for the plots (optional, default: fuel_name, or 'none' to disable).",
-    )
-    parser.add_argument(
-        "-d",
-        "--display",
-        type=lambda x: str(x).lower() not in ["false", "0"],
-        default=True,
-        metavar="{true,false}",
-        help="Display the plot with plt.show() (optional, default: True).",
-    )
-    parser.add_argument(
-        "-s",
-        "--save",
-        action="store_true",
-        help="Save the plot to a file (optional, default: False).",
-    )
-
-    args = parser.parse_args()
-
-    try:
-        plot_composition(
-            args.fuel_name,
-            fuel_data_dir=args.fuel_data_dir,
-            output_dir=args.output_dir,
-            title=args.title,
-            save=args.save,
-            display=args.display,
-        )
-    except Exception as e:
-        print(f"Error plotting composition: {e}")
-        exit(1)
-
-
-def props_main():
-    """
-    Entry point for fl-plt-props command - Plot mixture properties.
-    """
-    parser = argparse.ArgumentParser(
-        description="Plot mixture properties over temperature range for fuel(s)."
-    )
-
-    parser.add_argument(
-        "-f",
-        "--fuel_names",
-        required=True,
-        nargs="+",
-        metavar="NAME",
-        help="Name(s) of fuel(s) to plot (required, space-separated for multiple).",
-    )
-    parser.add_argument(
-        "-p",
-        "--property_names",
-        nargs="+",
-        default=None,
-        metavar="PROP",
-        help="Properties to plot (optional). Options: Density, Viscosity, VaporPressure, SurfaceTension, ThermalConductivity",
-    )
-    parser.add_argument(
-        "-dir",
-        "--fuel_data_dir",
-        default=None,
-        metavar="PATH",
-        help="Directory where fuel data files are located (optional).",
-    )
-    parser.add_argument(
-        "-o",
-        "--output_dir",
-        default=None,
-        metavar="PATH",
-        help="Directory to save the plot (optional, default: current directory).",
-    )
-    parser.add_argument(
-        "-t",
-        "--title",
-        default=None,
-        metavar="TITLE",
-        help="Title for the plot (optional).",
-    )
-    parser.add_argument(
-        "-d",
-        "--display",
-        type=lambda x: str(x).lower() not in ["false", "0"],
-        default=True,
-        metavar="{true,false}",
-        help="Display the plot with plt.show() (optional, default: True).",
-    )
-    parser.add_argument(
-        "-s",
-        "--save",
-        action="store_true",
-        help="Save the plot to a file (optional, default: False).",
-    )
-
-    args = parser.parse_args()
-
-    try:
-        plot_mixture_properties(
-            args.fuel_names,
-            property_names=args.property_names,
-            fuel_data_dir=args.fuel_data_dir,
-            output_dir=args.output_dir,
-            title=args.title,
-            save=args.save,
-            display=args.display,
-        )
-    except Exception as e:
-        print(f"Error plotting mixture properties: {e}")
-        exit(1)
-
-
-def main():
-    """
-    Main entry point for CLI usage.
-
-    This function handles routing between composition and mixture properties plotting.
-    """
-    parser = argparse.ArgumentParser(
-        description="Plot fuel composition or mixture properties."
-    )
-
-    # Subparsers for different plot types
-    subparsers = parser.add_subparsers(
-        dest="plot_type", help="Type of plot to generate"
-    )
-
-    # Composition plotter subcommand
-    comp_parser = subparsers.add_parser("comp", help="Plot fuel composition")
-    comp_parser.add_argument(
-        "-f",
-        "--fuel_name",
-        required=True,
-        metavar="NAME",
-        help="Name of the fuel to plot (required).",
-    )
-    comp_parser.add_argument(
-        "-dir",
-        "--fuel_data_dir",
-        default=None,
-        metavar="PATH",
-        help="Directory where fuel data files are located (optional).",
-    )
-    comp_parser.add_argument(
-        "-o",
-        "--output_dir",
-        default=None,
-        metavar="PATH",
-        help="Directory to save the plot (optional, default: current directory).",
-    )
-    comp_parser.add_argument(
-        "-t",
-        "--title",
-        default=None,
-        metavar="TITLE",
-        help="Title for the plots (optional, default: fuel_name, or 'none' to disable).",
-    )
-
-    # Mixture properties plotter subcommand
-    props_parser = subparsers.add_parser(
-        "props", help="Plot mixture properties over temperature range"
-    )
-    props_parser.add_argument(
-        "-f",
-        "--fuel_names",
-        required=True,
-        nargs="+",
-        metavar="NAME",
-        help="Name(s) of fuel(s) to plot (required, space-separated for multiple).",
-    )
-    props_parser.add_argument(
-        "-p",
-        "--property_names",
-        nargs="+",
-        default=None,
-        metavar="PROP",
-        help="Properties to plot (optional). Options: Density, Viscosity, VaporPressure, SurfaceTension, ThermalConductivity",
-    )
-    props_parser.add_argument(
-        "-dir",
-        "--fuel_data_dir",
-        default=None,
-        metavar="PATH",
-        help="Directory where fuel data files are located (optional).",
-    )
-    props_parser.add_argument(
-        "-o",
-        "--output_dir",
-        default=None,
-        metavar="PATH",
-        help="Directory to save the plot (optional, default: current directory).",
-    )
-    props_parser.add_argument(
-        "-t",
-        "--title",
-        default=None,
-        metavar="TITLE",
-        help="Title for the plot (optional).",
-    )
-
-    args = parser.parse_args()
-
-    if args.plot_type == "comp":
-        try:
-            plot_composition(
-                args.fuel_name,
-                fuel_data_dir=args.fuel_data_dir,
-                output_dir=args.output_dir,
-                title=args.title,
-            )
-        except Exception as e:
-            print(f"Error plotting composition: {e}")
-            exit(1)
-
-    elif args.plot_type == "props":
-        try:
-            plot_mixture_properties(
-                args.fuel_names,
-                property_names=args.property_names,
-                fuel_data_dir=args.fuel_data_dir,
-                output_dir=args.output_dir,
-                title=args.title,
-            )
-        except Exception as e:
-            print(f"Error plotting mixture properties: {e}")
-            exit(1)
-
-    else:
-        # If no subcommand specified, show help
-        parser.print_help()
-
-
-if __name__ == "__main__":
-    main()

@@ -2,8 +2,10 @@ import argparse
 import json
 import os
 import subprocess
+import urllib.error
 import urllib.request
-from datetime import datetime
+import warnings
+from datetime import UTC, datetime
 
 import pandas as pd
 from scipy import stats as st
@@ -97,11 +99,11 @@ def get_git_info():
             .strip()
             .decode("utf-8")
         )
-    except Exception:
+    except (subprocess.CalledProcessError, OSError):
         # Fall back to package version
         try:
             git_commit = fl.__version__
-        except Exception:
+        except AttributeError:
             git_commit = "N/A"
 
     try:
@@ -113,7 +115,7 @@ def get_git_info():
             .strip()
             .decode("utf-8")
         )
-    except Exception:
+    except (subprocess.CalledProcessError, OSError):
         # Try to get repository URL from PyPI metadata
         git_remote = _get_pypi_repo_url()
 
@@ -150,14 +152,14 @@ def _get_pypi_repo_url():
                 and data["info"]["home_page"]
             ):
                 return data["info"]["home_page"]
-    except Exception:
-        pass
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError) as e:
+        warnings.warn(f"Failed to fetch repository URL from PyPI: {e}", stacklevel=2)
 
     # Final fallback: PyPI package URL
     try:
         version = fl.__version__
         return f"https://pypi.org/project/fuellib/{version}/"
-    except Exception:
+    except AttributeError:
         return "https://pypi.org/project/fuellib/"
 
 
@@ -263,15 +265,15 @@ def create_mixture_dataframe(fuel, export_mix_name, converter):
         fuel, fuel.initial_mass_fractions
     )
     molecular_weight = fuel.molecular_weight.to("kg/mol").magnitude
-    heat_capacity_coeff_a = fl.utility.mixing_rule(
+    heat_capacity_coeff_a = fl.helpers.mixing_rule(
         fuel.heat_capacity_stp.to("J/mol/K").magnitude / molecular_weight,
         mole_fractions,
     )
-    heat_capacity_coeff_b = fl.utility.mixing_rule(
+    heat_capacity_coeff_b = fl.helpers.mixing_rule(
         fuel.heat_capacity_coeff_b.to("J/mol/K").magnitude / molecular_weight,
         mole_fractions,
     )
-    heat_capacity_coeff_c = fl.utility.mixing_rule(
+    heat_capacity_coeff_c = fl.helpers.mixing_rule(
         fuel.heat_capacity_coeff_c.to("J/mol/K").magnitude / molecular_weight,
         mole_fractions,
     )
@@ -288,32 +290,32 @@ def create_mixture_dataframe(fuel, export_mix_name, converter):
                 * converter.mw
             ],
             "Tc": [
-                fl.utility.mixing_rule(
+                fl.helpers.mixing_rule(
                     fuel.critical_temperature.to("K").magnitude, mole_fractions
                 )
             ],
             "Pc": [
-                fl.utility.mixing_rule(
+                fl.helpers.mixing_rule(
                     fuel.critical_pressure.to("Pa").magnitude, mole_fractions
                 )
                 * converter.pressure
             ],
             "Vc": [
-                fl.utility.mixing_rule(
+                fl.helpers.mixing_rule(
                     fuel.critical_volume.to("m**3/mol").magnitude, mole_fractions
                 )
                 * converter.vm
             ],
             "Tb": [
-                fl.utility.mixing_rule(
+                fl.helpers.mixing_rule(
                     fuel.boiling_temperature.to("K").magnitude, mole_fractions
                 )
             ],
             "omega": [
-                fl.utility.mixing_rule(fuel.acentric_factor.magnitude, mole_fractions)
+                fl.helpers.mixing_rule(fuel.acentric_factor.magnitude, mole_fractions)
             ],
             "Vm_stp": [
-                fl.utility.mixing_rule(
+                fl.helpers.mixing_rule(
                     fuel.molar_liquid_volume_stp.to("m**3/mol").magnitude,
                     mole_fractions,
                 )
@@ -326,7 +328,7 @@ def create_mixture_dataframe(fuel, export_mix_name, converter):
                 heat_capacity_coeff_a * converter.cp
             ],  # For MP model: Cp_stp = Cp_A
             "Lv_stp": [
-                fl.utility.mixing_rule(
+                fl.helpers.mixing_rule(
                     fuel.latent_heat_vaporization_stp.to("J/kg").magnitude,
                     mole_fractions,
                 )
@@ -570,7 +572,7 @@ def export_pele(
     }
 
     # Get header information
-    now = datetime.now()
+    now = datetime.now(tz=UTC)
     dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
     git_commit, git_remote = get_git_info()
 
