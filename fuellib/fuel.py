@@ -70,96 +70,65 @@ class fuel:
     """
 
     # Type annotations for documented attributes
-    #: Root directory for fuel data (custom or embedded)
-    fuelDataDir: str
-
+    fuelDataDir: str  #: Root directory for fuel data (custom or embedded)
     #: Directory containing GCxGC compositional data files
     fuelDataGcDir: str
-
     #: Directory containing functional group decomposition files
     fuelDataDecompDir: str
-
     #: Directory containing experimental property data (may be None)
     fuelDataPropsDir: str | None
-
     #: Name of the fuel/mixture
     name: str
-
     #: List of compound names in the mixture
     compounds: list
-
     #: Molecular formulas for each compound
     formulas: np.ndarray | None
-
     #: Mass fractions of each compound. Shape: (num_compounds,)
     Y_0: np.ndarray
-
     #: Functional group decomposition matrix. Shape: (num_compounds, num_groups)
     Nij: np.ndarray
-
     #: Number of compounds in the mixture
     num_compounds: int
-
     #: Number of functional groups in the decomposition
     num_groups: int
-
     #: Molecular weights. Shape: (num_compounds,)
     MW: pint.Quantity
-
     #: Critical temperatures. Shape: (num_compounds,)
     Tc: pint.Quantity
-
     #: Critical pressures. Shape: (num_compounds,)
     Pc: pint.Quantity
-
     #: Critical volumes. Shape: (num_compounds,)
     Vc: pint.Quantity
-
     #: Boiling temperatures. Shape: (num_compounds,)
     Tb: pint.Quantity
-
     #: Melting temperatures. Shape: (num_compounds,)
     Tm: pint.Quantity
-
     #: Enthalpy of formation. Shape: (num_compounds,)
     Hf: pint.Quantity
-
     #: Gibbs free energy. Shape: (num_compounds,)
     Gf: pint.Quantity
-
     #: Enthalpy of vaporization at 298 K. Shape: (num_compounds,)
     Hv_stp: pint.Quantity
-
     #: Latent heat of vaporization at 298 K. Shape: (num_compounds,)
     Lv_stp: pint.Quantity
-
     #: Molar specific heat at 298 K. Shape: (num_compounds,)
     Cp_stp: pint.Quantity
-
     #: Molar liquid volume at 298 K. Shape: (num_compounds,)
     Vm_stp: pint.Quantity
-
     #: Acentric factors (dimensionless). Shape: (num_compounds,)
     omega: pint.Quantity
-
     #: Lennard-Jones collision diameters. Shape: (num_compounds,)
     sigma: pint.Quantity
-
     #: Lennard-Jones well depths. Shape: (num_compounds,)
     epsilonByKB: pint.Quantity
-
     #: Hydrocarbon types ("n-alkane", "iso-alkane", "cyclo-alkane", "aromatic", "alkene")
     hc_type: np.ndarray
-
     #: Family codes for thermal conductivity (0: saturated, 1: aromatic, 2: cycloparaffin, 3: olefin)
     fam: np.ndarray
-
     #: Carbon numbers. Shape: (num_compounds,)
     nC: np.ndarray
-
     #: Hydrogen numbers. Shape: (num_compounds,)
     nH: np.ndarray
-
     #: PelePhysics keys for each compound (if available)
     pelephysics_keys: np.ndarray | None
 
@@ -167,7 +136,9 @@ class fuel:
     N_g1 = 78
     N_g2 = 43
 
-    def __init__(self, name, decompName=None, fuelDataDir=None):
+    def __init__(
+        self, name: str, decompName: str | None = None, fuelDataDir: str | None = None
+    ):
         """
         Initialize the fuel object and calculate GCM properties.
 
@@ -209,7 +180,59 @@ class fuel:
 
         self.groupDecompFile = os.path.join(self.fuelDataDecompDir, f"{decompName}.csv")
         self.gcxgcFile = os.path.join(self.fuelDataGcDir, f"{name}_init.csv")
-        self.gcmTableFile = os.path.join(gcmtable_dir, "gcmTable.csv")
+        self.gcmTableFile = os.path.join(gcmtable_dir, "gcmTable_refactor.csv")
+
+        # Read and store GCM table properties
+        df_table = pd.read_csv(self.gcmTableFile)
+
+        def get_row(property_name):
+            """
+            Get property row from GCM table as a unit-aware Quantity.
+
+            Units are read from the GCM table's "Units" column and validated
+            against the dimensionality this calculation expects, so drift in
+            the source CSV is flagged instead of silently mis-computed. Rows
+            with no units (e.g. "smarts", "order", "type") are read as
+            "NaN" by pandas; these are returned as raw, unparsed values.
+
+            :param property_name: Name of the property to retrieve.
+            :type property_name: str
+            :return: Property values for all functional groups. Raw
+                (non-Quantity) values if the row has no units in the CSV.
+            :rtype: pint.Quantity or np.ndarray
+            :raises ValueError: If property not found, or its units in the
+                GCM table don't match the expected dimensionality.
+            """
+            row = df_table[df_table["Property"] == property_name]
+            if row.empty:
+                raise ValueError(f"Property '{property_name}' not found in GCM table.")
+
+            csv_unit_text = row["Units"].iloc[0]
+            if pd.isna(csv_unit_text):
+                return row.iloc[:, 2:].to_numpy().flatten()
+
+            unit_str = _normalize_gcm_unit_text(csv_unit_text)
+            try:
+                parsed_unit = ureg.parse_units(unit_str)
+            except pint.UndefinedUnitError as e:
+                raise ValueError(
+                    f"GCM table property '{property_name}' has unparseable "
+                    f"units '{csv_unit_text}' in {self.gcmTableFile}."
+                ) from e
+
+            expected_unit_str = _GCM_ROW_EXPECTED_UNITS[property_name]
+            expected_dim = ureg.parse_units(expected_unit_str).dimensionality
+            if parsed_unit.dimensionality != expected_dim:
+                raise ValueError(
+                    f"GCM table property '{property_name}' has units "
+                    f"'{csv_unit_text}' ({parsed_unit.dimensionality}) but this "
+                    f"calculation expects dimensionality {expected_dim} (e.g. "
+                    f"'{expected_unit_str}'). Check {self.gcmTableFile} for "
+                    f"unexpected changes."
+                )
+
+            values = row.iloc[:, 2:].to_numpy().flatten().astype(float)
+            return Q_(values, parsed_unit)
 
         # Read functional group data for mixture (num_compounds,num_groups)
         df_Nij = pd.read_csv(self.groupDecompFile)
@@ -224,34 +247,29 @@ class fuel:
         # 3: olefins
         self.fam = np.zeros(self.num_compounds, dtype=int)
 
-        # Classify hydrocarbon by type (n-alkane, iso-alkane, cyclo-alkane, aromatic)
-        # Based on group decompositions from Constantinou-Gani method
+        # Classify hydrocarbon by type (n-alkane, iso-alkane, cyclo-alkane,
+        # aromatic, alkene) using the "type" row of the GCM table, which
+        # labels each first- and second-order group. Second-order alkene
+        # groups only ever occur alongside a first-order alkene or aromatic
+        # group, so all group orders are checked together without distinction.
         self.hc_type = np.array([""] * self.num_compounds, dtype=object)
 
-        aromatics = 10  # starting index for aromatic groups
-        num_aromatics = 5
-        branching = 78  # starting index for branching groups (Group j (CH3)2CH through C(CH3)2C(CH3)2)
-        num_branching = 5  # groups 78-82 inclusive
-        cyclos = 83  # starting index for membered ring groups (3-7 membered rings)
-        num_cyclos = 5
-        olefins = 4  # starting index for double bound groups
-        num_olefins = 6
-
+        group_types = get_row("type")
         for i in range(self.num_compounds):
             # Check if aromatic: does it contain AC's?
-            if sum(self.Nij[i, aromatics : aromatics + num_aromatics]) > 0:
+            if sum(self.Nij[i, group_types == "aromatic"]) > 0:
                 self.fam[i] = 1
                 self.hc_type[i] = "aromatic"
             # Check if cycloparaffin: does it contain rings?
-            elif sum(self.Nij[i, cyclos : cyclos + num_cyclos]) > 0:
+            elif sum(self.Nij[i, group_types == "cyclo-alkane"]) > 0:
                 self.fam[i] = 2
                 self.hc_type[i] = "cyclo-alkane"
             # Check if olefin: does it contain double bonds?
-            elif sum(self.Nij[i, olefins : olefins + num_olefins]) > 0:
+            elif sum(self.Nij[i, group_types == "alkene"]) > 0:
                 self.fam[i] = 3
                 self.hc_type[i] = "alkene"
             # Check for branching groups (CH, C quaternary carbons)
-            elif sum(self.Nij[i, branching : branching + num_branching]) > 0:
+            elif sum(self.Nij[i, group_types == "iso-alkane"]) > 0:
                 self.hc_type[i] = "iso-alkane"
             else:
                 # Only CH3 and CH2 -> n-alkane (linear)
@@ -323,52 +341,6 @@ class fuel:
                 f"The number of compounds in {self.groupDecompFile} does not "
                 f"equal the number of compounds in {self.gcxgcFile}."
             )
-
-        # Read and store GCM table properties
-        df_table = pd.read_csv(self.gcmTableFile)
-
-        def get_row(property_name):
-            """
-            Get property row from GCM table as a unit-aware Quantity.
-
-            Units are read from the GCM table's "Units" column and validated
-            against the dimensionality this calculation expects, so drift in
-            the source CSV is flagged instead of silently mis-computed.
-
-            :param property_name: Name of the property to retrieve.
-            :type property_name: str
-            :return: Property values for all functional groups.
-            :rtype: pint.Quantity
-            :raises ValueError: If property not found, or its units in the
-                GCM table don't match the expected dimensionality.
-            """
-            row = df_table[df_table["Property"] == property_name]
-            if row.empty:
-                raise ValueError(f"Property '{property_name}' not found in GCM table.")
-
-            csv_unit_text = row["Units"].iloc[0]
-            unit_str = _normalize_gcm_unit_text(csv_unit_text)
-            try:
-                parsed_unit = ureg.parse_units(unit_str)
-            except pint.UndefinedUnitError as e:
-                raise ValueError(
-                    f"GCM table property '{property_name}' has unparseable "
-                    f"units '{csv_unit_text}' in {self.gcmTableFile}."
-                ) from e
-
-            expected_unit_str = _GCM_ROW_EXPECTED_UNITS[property_name]
-            expected_dim = ureg.parse_units(expected_unit_str).dimensionality
-            if parsed_unit.dimensionality != expected_dim:
-                raise ValueError(
-                    f"GCM table property '{property_name}' has units "
-                    f"'{csv_unit_text}' ({parsed_unit.dimensionality}) but this "
-                    f"calculation expects dimensionality {expected_dim} (e.g. "
-                    f"'{expected_unit_str}'). Check {self.gcmTableFile} for "
-                    f"unexpected changes."
-                )
-
-            values = row.iloc[:, 2:].to_numpy().flatten().astype(float)
-            return Q_(values, parsed_unit)
 
         # Table data for functional groups (num_compounds,)
         Tck = get_row("tck")  # critical temperature correlation input
