@@ -92,7 +92,7 @@ exclude = [
 ignore = [
     "COM812",   # missing trailing comma (handled by format)
     "TID252",   # relative import
-    "D203",     # confict: incorrect blank line before class (uses D211 instead)
+    "D203",     # conflict: incorrect blank line before class (uses D211 instead)
     "D213",     # conflict: multi-line summary second line (uses D212 instead)
     "CPY001",   # copyright notice at top of file
 ]

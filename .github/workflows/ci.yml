@@ -68,7 +68,7 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install -e .
-      - run: python tests/test_accuracy.py --no-cov
+      - run: python tests/test_accuracy.py
 
   API:
     runs-on: ubuntu-latest
@@ -80,7 +80,7 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install -e .
-      - run: python tests/test_api.py -v --no-cov
+      - run: python tests/test_api.py -v
 
   Source-Docstrings:
     runs-on: ubuntu-latest
@@ -92,7 +92,7 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install -e .
-      - run: python tests/test_source_docstrings.py -v --no-cov
+      - run: python tests/test_source_docstrings.py -v
   
   Utilities:
     runs-on: ubuntu-latest
@@ -104,7 +104,7 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install -e '.[dev]'
-      - run: python -m pytest tests/test_utilities.py -v --no-cov
+      - run: python -m pytest tests/test_utilities.py -v
   
   Hydrocarbon-Identification:
     runs-on: ubuntu-latest
@@ -116,7 +116,7 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install -e '.[dev]'
-      - run: python -m pytest tests/test_hc_identification.py -v -s --no-cov
+      - run: python -m pytest tests/test_hc_identification.py -v -s
   
   Exporting-Scripts:
     runs-on: ubuntu-latest
@@ -128,5 +128,5 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install -e .
-      - run: python tests/test_exporters.py --no-cov
+      - run: python tests/test_exporters.py
   
