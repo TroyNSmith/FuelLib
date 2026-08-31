@@ -49,7 +49,7 @@ and its tasks instead of managing a virtual environment by hand:
 .. note::
 
    Building ``grimp`` (a dependency of ``import-linter``) requires a Rust
-   toolchain. If you don't already have one installed, e.g. ``brew install rust``.
+   toolchain. On macOS you may need to run ``brew install rust``.
 
 Pre-commit Hooks
 -----------------
