@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Lint-Format-Types:
+  Formatting:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
       - run: ty check
   
   Codespell:
-    needs: Lint-Format-Types
+    needs: Formatting
     runs-on: ubuntu-latest
     steps:
       - name: Clone
