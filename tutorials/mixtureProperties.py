@@ -101,33 +101,25 @@ def getPredAndData(fuel_name, prop_name):
         T_pred = fl.convert.C2K(np.linspace(temp_min, temp_max, 100))
 
     # Vectors for density, viscosity and vapor pressure
-    pred = np.zeros_like(T_pred)
+    Y_li = fuel.Y_0
 
-    for i in range(0, len(T_pred)):
-        Y_li = fuel.Y_0
+    if prop_name == "Density":
+        # Mixture density (returns rho in kg/m^3), converted to CGS (g/cm^3)
+        pred = fuel.mixture_density(Y_li, T_pred).ustrip("kg/m^3") * 1.0e-03
 
-        if prop_name == "Density":
-            # Mixture density (returns rho in kg/m^3)
-            pred[i] = fuel.mixture_density(Y_li, T_pred[i])
-            # Convert density to CGS (g/cm^3)
-            pred[i] *= 1.0e-03
+    if prop_name == "VaporPressure":
+        # Mixture vapor pressure (returns pv in Pa), converted to kPa
+        pred = fuel.mixture_vapor_pressure(Y_li, T_pred).ustrip("Pa") * 1.0e-03
 
-        if prop_name == "VaporPressure":
-            # Mixture vapor pressure (returns pv in Pa)
-            pred[i] = fuel.mixture_vapor_pressure(Y_li, T_pred[i])
-            # Convert vapor pressure to kPa
-            pred[i] *= 1.0e-03
+    if prop_name == "Viscosity":
+        # Converted to mm^2/s
+        pred = fuel.mixture_kinematic_viscosity(Y_li, T_pred).ustrip("m^2/s") * 1.0e06
 
-        if prop_name == "Viscosity":
-            pred[i] = fuel.mixture_kinematic_viscosity(Y_li, T_pred[i])
-            # Convert viscosity to mm^2/s
-            pred[i] *= 1.0e06
+    if prop_name == "SurfaceTension":
+        pred = fuel.mixture_surface_tension(Y_li, T_pred).ustrip("N/m")
 
-        if prop_name == "SurfaceTension":
-            pred[i] = fuel.mixture_surface_tension(Y_li, T_pred[i])
-
-        if prop_name == "ThermalConductivity":
-            pred[i] = fuel.mixture_thermal_conductivity(Y_li, T_pred[i])
+    if prop_name == "ThermalConductivity":
+        pred = fuel.mixture_thermal_conductivity(Y_li, T_pred).ustrip("W/(m*K)")
 
     return T_data, prop_data, T_pred, pred
 

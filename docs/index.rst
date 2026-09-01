@@ -57,6 +57,11 @@ FuelLib requires:
 - scipy ≥1.5.0
 - matplotlib ≥3.0.0
 - rdkit ≥2022.3.1
+- jax ≥0.4.29,<0.11.1
+- unxt ≥2.0.3
+
+All physically-dimensioned values (fuel properties, unit conversions, etc.) are returned as
+``unxt.Quantity`` objects, which carry their unit alongside the underlying ``jax`` array.
 
 Development tools (Sphinx, Black, pytest) are available for developers installing from source; see the installation instructions in the `Contributing <development.html>`_ section.
 

@@ -1,5 +1,7 @@
 """Unit conversion functions."""
 
+import unxt as u
+
 from .constants import N_A, k_B
 
 
@@ -8,11 +10,11 @@ def C2K(T):
     Convert temperature from Celsius to Kelvin.
 
     :param T: Temperature in Celsius.
-    :type T: float or np.ndarray
+    :type T: float or jax.Array
     :return: Temperature in Kelvin.
-    :rtype: float or np.ndarray
+    :rtype: unxt.Quantity
     """
-    return T + 273.15
+    return u.Q(T + 273.15, "K")
 
 
 def K2C(T):
@@ -20,11 +22,12 @@ def K2C(T):
     Convert temperature from Kelvin to Celsius.
 
     :param T: Temperature in Kelvin.
-    :type T: float or np.ndarray
+    :type T: unxt.Quantity
     :return: Temperature in Celsius.
-    :rtype: float or np.ndarray
+    :rtype: float or jax.Array
     """
-    return T - 273.15
+    # Celsius is an offset unit and can't round-trip as a Quantity
+    return T.ustrip("K") - 273.15
 
 
 def C2F(T):
@@ -32,9 +35,9 @@ def C2F(T):
     Convert temperature from Celsius to Fahrenheit.
 
     :param T: Temperature in Celsius.
-    :type T: float or np.ndarray
+    :type T: float or jax.Array
     :return: Temperature in Fahrenheit.
-    :rtype: float or np.ndarray
+    :rtype: float or jax.Array
     """
     return T * 9 / 5 + 32
 
@@ -44,9 +47,9 @@ def F2C(T):
     Convert temperature from Fahrenheit to Celsius.
 
     :param T: Temperature in Fahrenheit.
-    :type T: float or np.ndarray
+    :type T: float or jax.Array
     :return: Temperature in Celsius.
-    :rtype: float or np.ndarray
+    :rtype: float or jax.Array
     """
     return (T - 32) * 5 / 9
 
@@ -56,9 +59,9 @@ def F2K(T):
     Convert temperature from Fahrenheit to Kelvin.
 
     :param T: Temperature in Fahrenheit.
-    :type T: float or np.ndarray
+    :type T: float or jax.Array
     :return: Temperature in Kelvin.
-    :rtype: float or np.ndarray
+    :rtype: unxt.Quantity
     """
     return C2K(F2C(T))
 
@@ -68,9 +71,9 @@ def K2F(T):
     Convert temperature from Kelvin to Fahrenheit.
 
     :param T: Temperature in Kelvin.
-    :type T: float or np.ndarray
+    :type T: unxt.Quantity
     :return: Temperature in Fahrenheit.
-    :rtype: float or np.ndarray
+    :rtype: float or jax.Array
     """
     return C2F(K2C(T))
 
@@ -85,13 +88,13 @@ def epsilon_to_characteristic_temperature(epsilon_j_per_mol):
     Uses the relation: T* = (epsilon_J/mol) / (N_A * k_B)
 
     :param epsilon_j_per_mol: Lennard-Jones well depth epsilon in J/mol.
-    :type epsilon_j_per_mol: float
+    :type epsilon_j_per_mol: unxt.Quantity
     :return: Characteristic temperature (epsilon/k_B) in Kelvin.
-    :rtype: float
+    :rtype: unxt.Quantity
     """
     epsilon_per_molecule = epsilon_j_per_mol / N_A
     lj_welldepth_K = epsilon_per_molecule / k_B
-    return lj_welldepth_K
+    return lj_welldepth_K.uconvert("K")
 
 
 __all__ = [

@@ -2,6 +2,8 @@
 
 import argparse
 
+import unxt as u
+
 from .. import convert
 
 
@@ -19,7 +21,7 @@ def c2k_main():
 
     args = parser.parse_args()
     result = convert.C2K(args.temperature)
-    print(f"{args.temperature} °C = {result:.2f} K")
+    print(f"{args.temperature} °C = {result.ustrip('K'):.2f} K")
 
 
 def k2c_main():
@@ -35,7 +37,7 @@ def k2c_main():
     )
 
     args = parser.parse_args()
-    result = convert.K2C(args.temperature)
+    result = convert.K2C(u.Q(args.temperature, "K"))
     print(f"{args.temperature} K = {result:.2f} °C")
 
 
@@ -87,7 +89,7 @@ def f2k_main():
 
     args = parser.parse_args()
     result = convert.F2K(args.temperature)
-    print(f"{args.temperature} °F = {result:.2f} K")
+    print(f"{args.temperature} °F = {result.ustrip('K'):.2f} K")
 
 
 def k2f_main():
@@ -103,5 +105,5 @@ def k2f_main():
     )
 
     args = parser.parse_args()
-    result = convert.K2F(args.temperature)
+    result = convert.K2F(u.Q(args.temperature, "K"))
     print(f"{args.temperature} K = {result:.2f} °F")

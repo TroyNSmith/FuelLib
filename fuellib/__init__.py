@@ -14,6 +14,12 @@ try:
 except ImportError:
     __version__ = "unknown"
 
+# jax defaults to float32; enable float64 to match numpy precision (must run
+# before any jax arrays are created)
+import jax
+
+jax.config.update("jax_enable_x64", True)
+
 # Import fuel class
 # Import submodules for namespacing
 from . import constants, convert, utility

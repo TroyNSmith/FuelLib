@@ -7,6 +7,7 @@ import urllib.request
 from datetime import UTC, datetime
 
 import pandas as pd
+import unxt as u
 from scipy import stats as st
 
 import fuellib as fl
@@ -32,7 +33,7 @@ For detailed options, run:
 
 
 class UnitConverter:
-    """Unit conversion factors for different unit systems used in Pele exports."""
+    """Target unit strings for different unit systems used in Pele exports."""
 
     def __init__(self, units: str):
         """
@@ -43,7 +44,7 @@ class UnitConverter:
         """
         self.units = units.lower()
         self._validate_units()
-        self._set_conversion_factors()
+        self._set_target_units()
 
     def _validate_units(self):
         """
@@ -54,24 +55,24 @@ class UnitConverter:
         if self.units not in ["mks", "cgs"]:
             raise ValueError(f"Units must be 'mks' or 'cgs', got '{self.units}'")
 
-    def _set_conversion_factors(self):
+    def _set_target_units(self):
         """
-        Set conversion factors based on unit system.
+        Set the unxt unit string each Quantity should be `.ustrip()`-ed to.
         """
         if self.units == "cgs":
-            # Convert from MKS to CGS
-            self.MW = 1e3  # kg/mol to g/mol
-            self.Cp = 1e4  # J/kg/K to erg/g/K
-            self.Vm = 1e6  # m^3/mol to cm^3/mol
-            self.Lv = 1e4  # J/kg to erg/g
-            self.P = 1e1  # Pa to dyne/cm^2
+            self.MW = "g/mol"
+            self.Cp = "erg/g/K"
+            self.Vm = "cm^3/mol"
+            self.Lv = "erg/g"
+            self.P = "dyne/cm^2"
+            self.rho = "g/cm^3"
         else:
-            # MKS units (no conversion)
-            self.MW = 1.0
-            self.Cp = 1.0
-            self.Vm = 1.0
-            self.Lv = 1.0
-            self.P = 1.0
+            self.MW = "kg/mol"
+            self.Cp = "J/kg/K"
+            self.Vm = "m^3/mol"
+            self.Lv = "J/kg"
+            self.P = "Pa"
+            self.rho = "kg/m^3"
 
 
 def get_git_info():
@@ -204,27 +205,27 @@ def create_individual_compounds_dataframe(fuel, compound_names, converter):
     # Terms for liquid specific heat capacity in (J/kg/K) or (erg/g/K)
     # Cp(T) = Cp_A + Cp_B * theta + Cp_C * theta^2
     # where theta = (T - 298.15) / 700
-    Cp_A = fuel.Cp_stp / fuel.MW
-    Cp_B = fuel.Cp_B / fuel.MW
-    Cp_C = fuel.Cp_C / fuel.MW
+    Cp_A = (fuel.Cp_stp / fuel.MW).ustrip(converter.Cp)
+    Cp_B = (fuel.Cp_B / fuel.MW).ustrip(converter.Cp)
+    Cp_C = (fuel.Cp_C / fuel.MW).ustrip(converter.Cp)
 
     return pd.DataFrame(
         {
             "Compound": compound_names,
             "Family": fuel.fam,
             "Y_0": fuel.Y_0,
-            "MW": fuel.MW * converter.MW,
-            "Tc": fuel.Tc,
-            "Pc": fuel.Pc * converter.P,
-            "Vc": fuel.Vc * converter.Vm,
-            "Tb": fuel.Tb,
-            "omega": fuel.omega,
-            "Vm_stp": fuel.Vm_stp * converter.Vm,
-            "Cp_A": Cp_A * converter.Cp,
-            "Cp_B": Cp_B * converter.Cp,
-            "Cp_C": Cp_C * converter.Cp,
-            "Cp_stp": Cp_A * converter.Cp,  # For PeleMP model
-            "Lv_stp": fuel.Lv_stp * converter.Lv,
+            "MW": fuel.MW.ustrip(converter.MW),
+            "Tc": fuel.Tc.ustrip("K"),
+            "Pc": fuel.Pc.ustrip(converter.P),
+            "Vc": fuel.Vc.ustrip(converter.Vm),
+            "Tb": fuel.Tb.ustrip("K"),
+            "omega": fuel.omega.ustrip(""),
+            "Vm_stp": fuel.Vm_stp.ustrip(converter.Vm),
+            "Cp_A": Cp_A,
+            "Cp_B": Cp_B,
+            "Cp_C": Cp_C,
+            "Cp_stp": Cp_A,  # For PeleMP model
+            "Lv_stp": fuel.Lv_stp.ustrip(converter.Lv),
         }
     )
 
@@ -251,27 +252,27 @@ def create_mixture_dataframe(fuel, export_mix_name, converter):
     # Cp(T) = Cp_A + Cp_B * theta + Cp_C * theta^2
     # where theta = (T - 298.15) / 700
     X = fuel.Y2X(fuel.Y_0)
-    Cp_A = fl.utility.mixing_rule(fuel.Cp_stp / fuel.MW, X)
-    Cp_B = fl.utility.mixing_rule(fuel.Cp_B / fuel.MW, X)
-    Cp_C = fl.utility.mixing_rule(fuel.Cp_C / fuel.MW, X)
+    Cp_A = fl.utility.mixing_rule(fuel.Cp_stp / fuel.MW, X).ustrip(converter.Cp)
+    Cp_B = fl.utility.mixing_rule(fuel.Cp_B / fuel.MW, X).ustrip(converter.Cp)
+    Cp_C = fl.utility.mixing_rule(fuel.Cp_C / fuel.MW, X).ustrip(converter.Cp)
 
     return pd.DataFrame(
         {
             "Compound": [export_mix_name],
             "Family": [st.mode(fuel.fam).mode],
             "Y_0": [1.0],
-            "MW": [fuel.mean_molecular_weight(fuel.Y_0) * converter.MW],
-            "Tc": [fl.utility.mixing_rule(fuel.Tc, X)],
-            "Pc": [fl.utility.mixing_rule(fuel.Pc, X) * converter.P],
-            "Vc": [fl.utility.mixing_rule(fuel.Vc, X) * converter.Vm],
-            "Tb": [fl.utility.mixing_rule(fuel.Tb, X)],
-            "omega": [fl.utility.mixing_rule(fuel.omega, X)],
-            "Vm_stp": [fl.utility.mixing_rule(fuel.Vm_stp, X) * converter.Vm],
-            "Cp_A": [Cp_A * converter.Cp],
-            "Cp_B": [Cp_B * converter.Cp],
-            "Cp_C": [Cp_C * converter.Cp],
-            "Cp_stp": [Cp_A * converter.Cp],  # For MP model: Cp_stp = Cp_A
-            "Lv_stp": [fl.utility.mixing_rule(fuel.Lv_stp, X) * converter.Lv],
+            "MW": [fuel.mean_molecular_weight(fuel.Y_0).ustrip(converter.MW)],
+            "Tc": [fl.utility.mixing_rule(fuel.Tc, X).ustrip("K")],
+            "Pc": [fl.utility.mixing_rule(fuel.Pc, X).ustrip(converter.P)],
+            "Vc": [fl.utility.mixing_rule(fuel.Vc, X).ustrip(converter.Vm)],
+            "Tb": [fl.utility.mixing_rule(fuel.Tb, X).ustrip("K")],
+            "omega": [fl.utility.mixing_rule(fuel.omega, X).ustrip("")],
+            "Vm_stp": [fl.utility.mixing_rule(fuel.Vm_stp, X).ustrip(converter.Vm)],
+            "Cp_A": [Cp_A],
+            "Cp_B": [Cp_B],
+            "Cp_C": [Cp_C],
+            "Cp_stp": [Cp_A],  # For MP model: Cp_stp = Cp_A
+            "Lv_stp": [fl.utility.mixing_rule(fuel.Lv_stp, X).ustrip(converter.Lv)],
         }
     )
 
@@ -448,12 +449,12 @@ def export_pele(
             prop_names.append("psat")
 
         # Calculate density at 298.15 K
-        ref_T = 298.15
+        ref_T = u.Q(298.15, "K")
         if export_mix:
             rho = fuel.mixture_density(fuel.Y_0, ref_T)
         else:
             rho = fuel.density(ref_T)
-        df["rho"] = rho
+        df["rho"] = rho.ustrip(converter.rho)
 
         # Get Antoine coefficients
         if psat_antoine:
@@ -464,10 +465,8 @@ def export_pele(
                     psat_C,
                     psat_D,
                 ) = fuel.mixture_vapor_pressure_antoine_coeffs(fuel.Y_0, units=units)
-                rho = fuel.mixture_density(fuel.Y_0, ref_T)
             else:
                 psat_A, psat_B, psat_C, psat_D = fuel.psat_antoine_coeffs(units=units)
-                rho = fuel.density(ref_T)
 
             df["psat_A"] = psat_A
             df["psat_B"] = psat_B
@@ -518,7 +517,7 @@ def export_pele(
         f.write(f"particles.Y_0 = {vec_to_str(df['Y_0'].tolist())}\n")
         f.write(f"particles.dep_fuel_species = {vec_to_str(dep_fuel_names)}\n")
         if liq_prop_model.lower() == "mp":
-            f.write(f"particles.fuel_ref_temp = {ref_T} # K\n")
+            f.write(f"particles.fuel_ref_temp = {ref_T.ustrip('K')} # K\n")
 
         for comp_name in compound_names:
             f.write(f"\n# Properties for {comp_name} in {units.upper()}\n")

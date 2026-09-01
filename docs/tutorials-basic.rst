@@ -100,14 +100,14 @@ For example, we can display the fuel name, the components in the fuel, the initi
     print(f"Fuel name: {fuel.name}")
     print(f"Fuel components: {fuel.compounds}")
     print(f"Initial composition: {fuel.Y_0}")
-    print(f"Critical temperature: {fuel.Tc} K")
+    print(f"Critical temperature: {fuel.Tc}")
 
 .. code-block:: none
 
     >> Fuel name: heptane-decane
     >> Fuel components: ['NC7H16', 'NC10H22']
     >> Initial composition: [0.7375 0.2625]
-    >> Critical temperature: [549.85598051 623.69051582] K
+    >> Critical temperature: Quantity([549.85598051, 623.69051582], unit='K')
 
 Next, we can calculate any of the component- or mixture-level properties using the 
 ``fuel`` object. For example, we can calculate the saturated vapor pressure
@@ -115,17 +115,19 @@ for each component and the mixture at a given temperature:
 
 .. code-block:: python
 
+    import unxt as u
+
     # Calculate the saturated vapor pressure at 320 K
-    T = 320 # K
+    T = u.Q(320.0, "K")
     p_sat_i = fuel.psat(T)
-    p_sat_mix = fuel.mixture_vapor_pressure(T)
-    print(f"Saturated vapor pressure at {T} K: {p_sat_i} Pa")
-    print(f"Mixture saturated vapor pressure at {T} K: {p_sat_mix} Pa")
+    p_sat_mix = fuel.mixture_vapor_pressure(fuel.Y_0, T)
+    print(f"Saturated vapor pressure at {T}: {p_sat_i}")
+    print(f"Mixture saturated vapor pressure at {T}: {p_sat_mix.ustrip('Pa'):.2f} Pa")
 
 .. code-block:: none
 
-    >> Saturated vapor pressure at 320 K: [13735.84605413   673.28876023] Pa
-    >> Mixture saturated vapor pressure at 320 K: 11117.84926875165 Pa
+    >> Saturated vapor pressure at Quantity(320., unit='K'): Quantity([13735.84605413,   673.28876023], unit='Pa')
+    >> Mixture saturated vapor pressure at Quantity(320., unit='K'): 11117.85 Pa
 
 The following links provide more information on the :ref:`eq-GCM-correlations` and
 the :ref:`eq-mixture-properties` that can be calculated using the ``groupContribution`` object.

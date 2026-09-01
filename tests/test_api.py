@@ -2,6 +2,7 @@ import inspect
 import unittest
 
 import numpy as np
+import unxt as u
 
 import fuellib as fl
 
@@ -139,37 +140,37 @@ class ApiContractTestCase(unittest.TestCase):
             )
             val = getattr(fl.constants, name)
             self.assertIsInstance(
-                val, (int, float), msg=f"fuellib.constants.{name} should be numeric"
+                val, u.Quantity, msg=f"fuellib.constants.{name} should be a Quantity"
             )
             print(f"  ✓ {name}")
 
     def test_fuellib_class_api(self):
         print("\nFuelLib.fuel Class API:")
         expected = {
-            "Cl": "(self, T, comp_idx=None)",
-            "Cp": "(self, T, comp_idx=None)",
-            "X2Y": "(self, Xi)",
-            "Y2X": "(self, Yi)",
-            "density": "(self, T, comp_idx=None)",
-            "diffusion_coeff": "(self, p, T, sigma_gas=3.62e-10, epsilonByKB_gas=97.0, MW_gas=0.02897, correlation='Tee')",
-            "latent_heat_vaporization": "(self, T, comp_idx=None)",
-            "mass2X": "(self, mass)",
-            "mass2Y": "(self, mass)",
-            "mean_molecular_weight": "(self, Yi)",
-            "mixture_density": "(self, Yi, T)",
-            "mixture_dynamic_viscosity": "(self, Yi, T, correlation='Kendall-Monroe')",
-            "mixture_kinematic_viscosity": "(self, Yi, T, correlation='Kendall-Monroe')",
-            "mixture_surface_tension": "(self, Yi, T, correlation='Brock-Bird')",
-            "mixture_thermal_conductivity": "(self, Yi, T)",
-            "mixture_vapor_pressure": "(self, Yi, T, correlation='Lee-Kesler')",
-            "mixture_vapor_pressure_antoine_coeffs": "(self, Yi, Tvals=None, units='mks', correlation='Lee-Kesler')",
-            "molar_liquid_vol": "(self, T, comp_idx=None)",
-            "psat": "(self, T, comp_idx=None, correlation='Lee-Kesler')",
-            "psat_antoine_coeffs": "(self, Tvals=None, units='mks', correlation='Lee-Kesler')",
-            "surface_tension": "(self, T, comp_idx=None, correlation='Brock-Bird')",
-            "thermal_conductivity": "(self, T, comp_idx=None)",
-            "viscosity_dynamic": "(self, T, comp_idx=None)",
-            "viscosity_kinematic": "(self, T, comp_idx=None)",
+            "Cl": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None)",
+            "Cp": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None)",
+            "X2Y": "(self, Xi: jax.Array)",
+            "Y2X": "(self, Yi: jax.Array)",
+            "density": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None)",
+            "diffusion_coeff": "(self, p: unxt._src.quantity.quantity.Quantity, T: unxt._src.quantity.quantity.Quantity, sigma_gas: float = 3.62e-10, epsilonByKB_gas: float = 97.0, MW_gas: float = 0.02897, correlation: str = 'Tee')",
+            "latent_heat_vaporization": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None)",
+            "mass2X": "(self, mass: unxt._src.quantity.quantity.Quantity)",
+            "mass2Y": "(self, mass: unxt._src.quantity.quantity.Quantity)",
+            "mean_molecular_weight": "(self, Yi: jax.Array)",
+            "mixture_density": "(self, Yi: jax.Array, T: unxt._src.quantity.quantity.Quantity)",
+            "mixture_dynamic_viscosity": "(self, Yi: jax.Array, T: unxt._src.quantity.quantity.Quantity, correlation: str = 'Kendall-Monroe')",
+            "mixture_kinematic_viscosity": "(self, Yi: jax.Array, T: unxt._src.quantity.quantity.Quantity, correlation: str = 'Kendall-Monroe')",
+            "mixture_surface_tension": "(self, Yi: jax.Array, T: unxt._src.quantity.quantity.Quantity, correlation: Literal['Pitzer', 'Brock-Bird'] = 'Brock-Bird')",
+            "mixture_thermal_conductivity": "(self, Yi: jax.Array, T: unxt._src.quantity.quantity.Quantity)",
+            "mixture_vapor_pressure": "(self, Yi: jax.Array, T: unxt._src.quantity.quantity.Quantity, correlation: str = 'Lee-Kesler')",
+            "mixture_vapor_pressure_antoine_coeffs": "(self, Yi: jax.Array, Tvals: numpy.ndarray | None = None, units: str = 'mks', correlation: str = 'Lee-Kesler')",
+            "molar_liquid_vol": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None)",
+            "psat": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None, correlation: str = 'Lee-Kesler')",
+            "psat_antoine_coeffs": "(self, Tvals: numpy.ndarray | None = None, units: str = 'mks', correlation: str = 'Lee-Kesler')",
+            "surface_tension": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None, correlation: str = 'Brock-Bird')",
+            "thermal_conductivity": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None)",
+            "viscosity_dynamic": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None)",
+            "viscosity_kinematic": "(self, T: unxt._src.quantity.quantity.Quantity, comp_idx: int | None = None)",
         }
 
         actual = _public_class_methods(fl.fuel)
@@ -201,10 +202,14 @@ class FuelLibFunctionEvalTestCase(unittest.TestCase):
             "decane": fl.fuel("decane"),
             "posf10325": fl.fuel("posf10325"),
         }
-        cls.T = 320.0
-        cls.p = 101325.0
+        cls.T = u.Q(320.0, "K")
+        cls.p = u.Q(101325.0, "Pa")
 
     def _assert_finite_and_positive(self, value):
+        # Quantity can't become a bare array without naming a unit; the raw
+        # value is enough for a finite/positive check regardless of unit.
+        if isinstance(value, u.Quantity):
+            value = value.value
         arr = np.asarray(value)
         self.assertTrue(np.all(np.isfinite(arr)))
         self.assertTrue(np.all(arr > 0.0))
@@ -221,12 +226,13 @@ class FuelLibFunctionEvalTestCase(unittest.TestCase):
 
                 # Utility functions (run per fuel for consistent CI grouping)
                 print("  Utility Functions:")
-                self.assertAlmostEqual(fl.convert.C2K(25.0), 298.15)
+                self.assertAlmostEqual(fl.convert.C2K(25.0).ustrip("K"), 298.15)
                 print("    ✓ convert.C2K")
-                self.assertAlmostEqual(fl.convert.K2C(298.15), 25.0)
+                self.assertAlmostEqual(fl.convert.K2C(u.Q(298.15, "K")), 25.0)
                 print("    ✓ convert.K2C")
                 self.assertAlmostEqual(
-                    fl.utility.droplet_volume(1e-4), 4.0 / 3.0 * np.pi * (1e-4) ** 3
+                    fl.utility.droplet_volume(u.Q(1e-4, "m")).ustrip("m^3"),
+                    4.0 / 3.0 * np.pi * (1e-4) ** 3,
                 )
                 print("    ✓ utility.droplet_volume")
 
@@ -261,7 +267,7 @@ class FuelLibFunctionEvalTestCase(unittest.TestCase):
                 self.assertTrue(np.allclose(Yi, Yi_back, rtol=1e-10, atol=1e-12))
                 print("    ✓ Y2X/X2Y roundtrip")
 
-                mass = Yi * 1.0e-6
+                mass = u.Q(Yi * 1.0e-6, "kg")
                 self.assertTrue(
                     np.allclose(fuel.mass2Y(mass), Yi, rtol=1e-10, atol=1e-12)
                 )
@@ -414,13 +420,99 @@ class FuelLibFunctionEvalTestCase(unittest.TestCase):
 
                 # Droplet helpers
                 print("  Droplet Properties:")
-                m = fl.utility.droplet_mass(fuel, 2.0e-5, Yi, self.T)
+                m = fl.utility.droplet_mass(fuel, u.Q(2.0e-5, "m"), Yi, self.T)
                 self.assertEqual(m.shape, fuel.MW.shape)
-                self.assertTrue(np.all(m >= 0.0))
-                self.assertTrue(
-                    np.allclose(fl.utility.droplet_mass(fuel, 0.0, Yi, self.T), 0.0)
-                )
+                self.assertTrue(np.all(m.value >= 0.0))
+                zero_mass = fl.utility.droplet_mass(fuel, u.Q(0.0, "m"), Yi, self.T)
+                self.assertTrue(np.allclose(zero_mass.ustrip("kg"), 0.0))
                 print("    ✓ utility.droplet_mass")
+
+    def test_array_T_matches_scalar_loop(self):
+        """Array-valued T must reproduce stacking the scalar-T call for every element."""
+        T_vals = [300.0, 320.0, 350.0]
+        T_arr = u.Q(np.array(T_vals), "K")
+
+        for fuel_name, fuel in self.fuels.items():
+            with self.subTest(fuel=fuel_name):
+                Yi = fuel.Y_0.copy()
+
+                # Per-compound methods, comp_idx=None -> (num_times, num_compounds)
+                # and comp_idx=0 -> (num_times,)
+                component_methods = [
+                    "density",
+                    "viscosity_kinematic",
+                    "viscosity_dynamic",
+                    "Cp",
+                    "Cl",
+                    "psat",
+                    "molar_liquid_vol",
+                    "latent_heat_vaporization",
+                    "surface_tension",
+                    "thermal_conductivity",
+                ]
+                for method_name in component_methods:
+                    method = getattr(fuel, method_name)
+
+                    batched = np.asarray(method(T_arr).value)
+                    stacked = np.stack(
+                        [np.asarray(method(u.Q(t, "K")).value) for t in T_vals]
+                    )
+                    self.assertEqual(batched.shape, (len(T_vals), fuel.num_compounds))
+                    np.testing.assert_allclose(batched, stacked, rtol=1e-10, atol=1e-12)
+
+                    batched_i = np.asarray(method(T_arr, comp_idx=0).value)
+                    stacked_i = np.stack(
+                        [
+                            np.asarray(method(u.Q(t, "K"), comp_idx=0).value)
+                            for t in T_vals
+                        ]
+                    )
+                    self.assertEqual(batched_i.shape, (len(T_vals),))
+                    np.testing.assert_allclose(
+                        batched_i, stacked_i, rtol=1e-10, atol=1e-12
+                    )
+                print("    ✓ array-T component methods match scalar loop")
+
+                # diffusion_coeff has no comp_idx: always all compounds
+                for correlation in ("Tee", "Wilke"):
+                    batched = np.asarray(
+                        fuel.diffusion_coeff(
+                            self.p, T_arr, correlation=correlation
+                        ).value
+                    )
+                    stacked = np.stack(
+                        [
+                            np.asarray(
+                                fuel.diffusion_coeff(
+                                    self.p, u.Q(t, "K"), correlation=correlation
+                                ).value
+                            )
+                            for t in T_vals
+                        ]
+                    )
+                    self.assertEqual(batched.shape, (len(T_vals), fuel.num_compounds))
+                    np.testing.assert_allclose(batched, stacked, rtol=1e-10, atol=1e-12)
+                print("    ✓ array-T diffusion_coeff (Tee/Wilke) match scalar loop")
+
+                # Mixture methods: array T -> (num_times,)
+                mixture_calls = [
+                    lambda T, fuel=fuel, Yi=Yi: fuel.mixture_density(Yi, T),
+                    lambda T, fuel=fuel, Yi=Yi: fuel.mixture_kinematic_viscosity(Yi, T),
+                    lambda T, fuel=fuel, Yi=Yi: fuel.mixture_dynamic_viscosity(Yi, T),
+                    lambda T, fuel=fuel, Yi=Yi: fuel.mixture_vapor_pressure(Yi, T),
+                    lambda T, fuel=fuel, Yi=Yi: fuel.mixture_surface_tension(Yi, T),
+                    lambda T, fuel=fuel, Yi=Yi: fuel.mixture_thermal_conductivity(
+                        Yi, T
+                    ),
+                ]
+                for call in mixture_calls:
+                    batched = np.asarray(call(T_arr).value)
+                    stacked = np.array(
+                        [float(np.asarray(call(u.Q(t, "K")).value)) for t in T_vals]
+                    )
+                    self.assertEqual(batched.shape, (len(T_vals),))
+                    np.testing.assert_allclose(batched, stacked, rtol=1e-10, atol=1e-12)
+                print("    ✓ array-T mixture methods match scalar loop")
 
 
 if __name__ == "__main__":

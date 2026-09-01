@@ -82,7 +82,7 @@ def getPredAndData(fuel_name, prop_name, blend):
 
         if prop_name == "Density":
             # Mixture density (returns rho in kg/m^3)
-            prop_pred[i] = fuel.mixture_density(Y_li, T)
+            prop_pred[i] = fuel.mixture_density(Y_li, T).ustrip("kg/m^3")
             # Convert density to CGS (g/cm^3)
             prop_pred[i] *= 1.0e-03
 
@@ -90,7 +90,7 @@ def getPredAndData(fuel_name, prop_name, blend):
             # initial liquid mass fractions
             Y_li = blend[i] * fuel.Y_0 + (1 - blend[i]) * jetA.Y_0
 
-            prop_pred[i] = fuel.mixture_kinematic_viscosity(Y_li, T)
+            prop_pred[i] = fuel.mixture_kinematic_viscosity(Y_li, T).ustrip("m^2/s")
             # Convert viscosity to mm^2/s
             prop_pred[i] *= 1.0e06
 

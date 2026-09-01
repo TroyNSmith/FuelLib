@@ -2,6 +2,8 @@
 
 import argparse
 
+import unxt as u
+
 from .. import convert
 
 
@@ -18,5 +20,5 @@ def eps2K_main():
     )
 
     args = parser.parse_args()
-    result = convert.epsilon_to_characteristic_temperature(args.epsilon)
-    print(f"Characteristic temperature: {result:.3f} K")
+    result = convert.epsilon_to_characteristic_temperature(u.Q(args.epsilon, "J/mol"))
+    print(f"Characteristic temperature: {result.ustrip('K'):.3f} K")

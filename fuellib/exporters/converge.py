@@ -1,8 +1,9 @@
 import argparse
 import os
 
-import numpy as np
+import jax.numpy as jnp
 import pandas as pd
+import unxt as u
 
 import fuellib as fl
 
@@ -98,29 +99,29 @@ class UnitConverter:
         Create a data dictionary with converted units and appropriate labels.
 
         :param T: Temperature array.
-        :type T: np.ndarray
+        :type T: jax.Array
         :param T_crit: Critical temperature.
         :type T_crit: float
         :param mu: Viscosity array.
-        :type mu: np.ndarray
+        :type mu: jax.Array
         :param surface_tension: Surface tension array.
-        :type surface_tension: np.ndarray
+        :type surface_tension: jax.Array
         :param Lv: Heat of vaporization array.
-        :type Lv: np.ndarray
+        :type Lv: jax.Array
         :param pv: Vapor pressure array.
-        :type pv: np.ndarray
+        :type pv: jax.Array
         :param rho: Density array.
-        :type rho: np.ndarray
+        :type rho: jax.Array
         :param Cl: Specific heat array.
-        :type Cl: np.ndarray
+        :type Cl: jax.Array
         :param thermal_conductivity: Thermal conductivity array.
-        :type thermal_conductivity: np.ndarray
+        :type thermal_conductivity: jax.Array
         :return: Dictionary with converted properties and labels.
         :rtype: dict
         """
         return {
             self.labels["temperature"]: T,
-            self.labels["critical_temp"]: T_crit + np.zeros_like(T),
+            self.labels["critical_temp"]: T_crit + jnp.zeros_like(T),
             self.labels["viscosity"]: mu * self.mu,
             self.labels["surface_tension"]: surface_tension * self.surface_tension,
             self.labels["heat_vaporization"]: Lv * self.Lv,
@@ -208,6 +209,11 @@ def export_converge(
     # Initialize unit converter
     converter = UnitConverter(units)
 
+    # Strip to plain Kelvin arrays so the rest of this function (rounding,
+    # comparisons, min/max) can work exactly as it did before the Quantity migration
+    Tc_K = fuel.Tc.ustrip("K")
+    Tm_K = fuel.Tm.ustrip("K")
+
     def nearest_temp(x, base=temp_step):
         """
         Round to nearest multiple of temp_step.
@@ -226,14 +232,14 @@ def export_converge(
         Find the largest value in the array that is less than or equal to the given value.
 
         :param array: Array of temperature values.
-        :type array: np.ndarray
+        :type array: jax.Array
         :param value: Reference value.
         :type value: float
         :return: Largest array value <= reference value.
         :rtype: float
         :raises ValueError: If no array value is <= reference value.
         """
-        if np.any(array <= value):
+        if jnp.any(array <= value):
             return array[array <= value].max()
         else:
             raise ValueError(
@@ -245,14 +251,14 @@ def export_converge(
         Find the smallest value in the array that is greater than or equal to the given value.
 
         :param array: Array of temperature values.
-        :type array: np.ndarray
+        :type array: jax.Array
         :param value: Reference value.
         :type value: float
         :return: Smallest array value >= reference value.
         :rtype: float
         :raises ValueError: If no array value is >= reference value.
         """
-        if np.any(array >= value):
+        if jnp.any(array >= value):
             return array[array >= value].min()
         else:
             raise ValueError(
@@ -264,7 +270,7 @@ def export_converge(
         Validate and adjust temperature range based on freezing and critical temperatures.
 
         :param T_array: Array of temperature values.
-        :type T_array: np.ndarray
+        :type T_array: jax.Array
         :param T_freeze: Freezing temperature.
         :type T_freeze: float
         :param T_crit: Critical temperature.
@@ -278,7 +284,7 @@ def export_converge(
         T_max_allowed = T_crit
 
         # Handle minimum temperature warnings
-        if np.any(T_array < T_min_allowed):
+        if jnp.any(T_array < T_min_allowed):
             T_min_allowed = nearest_ceil(T_array, T_min_allowed)
             compound_type = "mixture" if is_mixture else "compound"
             print("!" * 88)
@@ -295,8 +301,8 @@ def export_converge(
 
         # Handle maximum temperature warnings for mixtures
         if is_mixture:
-            T_max_allowed = min(fuel.Tc)
-            if np.any(T_array > T_max_allowed):
+            T_max_allowed = min(Tc_K)
+            if jnp.any(T_array > T_max_allowed):
                 T_max_allowed = nearest_floor(T_array, T_max_allowed)
                 print("!" * 88)
                 print(
@@ -318,37 +324,31 @@ def export_converge(
         Calculate mixture properties for a range of temperatures.
 
         :param T_array: Array of temperature values.
-        :type T_array: np.ndarray
+        :type T_array: jax.Array
         :param fuel: Fuel object.
         :type fuel: fl.fuel
         :return: Tuple of property arrays (mu, surface_tension, Lv, pv, rho, Cl, thermal_conductivity).
         :rtype: tuple
         """
-        # Initialize property arrays
-        mu = np.zeros_like(T_array)
-        surface_tension = np.zeros_like(T_array)
-        Lv = np.zeros_like(T_array)
-        pv = np.zeros_like(T_array)
-        rho = np.zeros_like(T_array)
-        Cl = np.zeros_like(T_array)
-        thermal_conductivity = np.zeros_like(T_array)
+        # Vectorized over the whole T_array: one Quantity call per property instead
+        # of a per-temperature Python loop.
+        Y_li = fuel.Y_0
+        X_li = fuel.Y2X(Y_li)
+        T_q = u.Q(T_array, "K")
 
-        for k, Temp in enumerate(T_array):
-            Y_li = fuel.Y_0
-            X_li = fuel.Y2X(Y_li)
+        rho = fuel.mixture_density(Y_li, T_q).ustrip("kg/m^3")
+        mu = fuel.mixture_dynamic_viscosity(Y_li, T_q).ustrip("Pa*s")
+        pv = fuel.mixture_vapor_pressure(Y_li, T_q).ustrip("Pa")
+        surface_tension = fuel.mixture_surface_tension(Y_li, T_q).ustrip("N/m")
+        thermal_conductivity = fuel.mixture_thermal_conductivity(Y_li, T_q).ustrip(
+            "W/(m*K)"
+        )
 
-            # Standard mixing rules for properties
-            rho[k] = fuel.mixture_density(Y_li, Temp)  # kg/m^3
-            mu[k] = fuel.mixture_dynamic_viscosity(Y_li, Temp)  # Pa*s
-            pv[k] = fuel.mixture_vapor_pressure(Y_li, Temp)  # Pa
-            surface_tension[k] = fuel.mixture_surface_tension(Y_li, Temp)  # N/m
-            thermal_conductivity[k] = fuel.mixture_thermal_conductivity(Y_li, Temp)
-
-            # Generic mixing rules for latent heat and specific heat
-            Lv[k] = fl.utility.mixing_rule(
-                fuel.latent_heat_vaporization(Temp), X_li
-            )  # J/kg
-            Cl[k] = fl.utility.mixing_rule(fuel.Cl(Temp), X_li)  # J/kg/K
+        # Generic mixing rules for latent heat and specific heat
+        Lv = fl.utility.mixing_rule(fuel.latent_heat_vaporization(T_q), X_li).ustrip(
+            "J/kg"
+        )
+        Cl = fl.utility.mixing_rule(fuel.Cl(T_q), X_li).ustrip("J/(kg*K)")
 
         return mu, surface_tension, Lv, pv, rho, Cl, thermal_conductivity
 
@@ -357,7 +357,7 @@ def export_converge(
         Calculate individual component properties for a range of temperatures.
 
         :param T_array: Array of temperature values.
-        :type T_array: np.ndarray
+        :type T_array: jax.Array
         :param fuel: Fuel object.
         :type fuel: fl.fuel
         :param comp_idx: Index of the component.
@@ -365,23 +365,18 @@ def export_converge(
         :return: Tuple of property arrays (mu, surface_tension, Lv, pv, rho, Cl, thermal_conductivity).
         :rtype: tuple
         """
-        # Initialize property arrays
-        mu = np.zeros_like(T_array)
-        surface_tension = np.zeros_like(T_array)
-        Lv = np.zeros_like(T_array)
-        pv = np.zeros_like(T_array)
-        rho = np.zeros_like(T_array)
-        Cl = np.zeros_like(T_array)
-        thermal_conductivity = np.zeros_like(T_array)
-
-        for k, Temp in enumerate(T_array):
-            rho[k] = fuel.density(Temp, comp_idx=comp_idx)  # kg/m^3
-            mu[k] = fuel.viscosity_dynamic(Temp, comp_idx=comp_idx)  # Pa*s
-            pv[k] = fuel.psat(Temp, comp_idx=comp_idx)  # Pa
-            surface_tension[k] = fuel.surface_tension(Temp, comp_idx=comp_idx)  # N/m
-            thermal_conductivity[k] = fuel.thermal_conductivity(Temp, comp_idx=comp_idx)
-            Lv[k] = fuel.latent_heat_vaporization(Temp, comp_idx=comp_idx)  # J/kg
-            Cl[k] = fuel.Cl(Temp, comp_idx=comp_idx)  # J/kg/K
+        # comp_idx is fixed here, so every formula broadcasts a scalar Tc/Pc/... against
+        # the whole T_array - one Quantity call per property instead of a per-T Python loop.
+        T_q = u.Q(T_array, "K")
+        rho = fuel.density(T_q, comp_idx=comp_idx).ustrip("kg/m^3")
+        mu = fuel.viscosity_dynamic(T_q, comp_idx=comp_idx).ustrip("Pa*s")
+        pv = fuel.psat(T_q, comp_idx=comp_idx).ustrip("Pa")
+        surface_tension = fuel.surface_tension(T_q, comp_idx=comp_idx).ustrip("N/m")
+        thermal_conductivity = fuel.thermal_conductivity(T_q, comp_idx=comp_idx).ustrip(
+            "W/(m*K)"
+        )
+        Lv = fuel.latent_heat_vaporization(T_q, comp_idx=comp_idx).ustrip("J/kg")
+        Cl = fuel.Cl(T_q, comp_idx=comp_idx).ustrip("J/(kg*K)")
 
         return mu, surface_tension, Lv, pv, rho, Cl, thermal_conductivity
 
@@ -412,18 +407,18 @@ def export_converge(
     if export_mix:
         # Vector of evenly spaced temperatures
         nT = int((temp_max - temp_min) / temp_step) + 1
-        T = np.linspace(temp_min, temp_max, nT)
+        T = jnp.linspace(temp_min, temp_max, nT)
 
         # Estimate freezing point and critical temp of mixture
-        T_freeze = fl.utility.mixing_rule(fuel.Tm, fuel.Y2X(fuel.Y_0))
-        T_crit = fl.utility.mixing_rule(fuel.Tc, fuel.Y2X(fuel.Y_0))
+        T_freeze = fl.utility.mixing_rule(Tm_K, fuel.Y2X(fuel.Y_0))
+        T_crit = fl.utility.mixing_rule(Tc_K, fuel.Y2X(fuel.Y_0))
 
         print(f"\nEstimated mixture freezing temp: {T_freeze:.2f} K")
-        print(f"Min freezing temp min(Tm_i): {min(fuel.Tm):.2f} K")
-        print(f"Max freezing temp max(Tm_i): {max(fuel.Tm):.2f} K")
+        print(f"Min freezing temp min(Tm_i): {min(Tm_K):.2f} K")
+        print(f"Max freezing temp max(Tm_i): {max(Tm_K):.2f} K")
         print(f"Estimated mixture critical temp: {T_crit:.2f} K")
-        print(f"Min critical temp min(Tc_i): {min(fuel.Tc):.2f} K")
-        print(f"Max critical temp max(Tc_i): {max(fuel.Tc):.2f} K")
+        print(f"Min critical temp min(Tc_i): {min(Tc_K):.2f} K")
+        print(f"Max critical temp max(Tc_i): {max(Tc_K):.2f} K")
 
         # Validate and adjust temperature range
         T_min_allowed, T_max_allowed, T = validate_temperature_range(
@@ -433,12 +428,12 @@ def export_converge(
     for comp_idx, compound in enumerate(components):
         if not export_mix:
             # Get component-specific temperature limits
-            T_freeze = fuel.Tm[comp_idx]
-            T_crit = fuel.Tc[comp_idx]
+            T_freeze = Tm_K[comp_idx]
+            T_crit = Tc_K[comp_idx]
             T_min_allowed = nearest_temp(T_freeze)
 
             # Create temperature array up to critical temperature
-            maxtemps = np.array(
+            maxtemps = jnp.array(
                 [
                     nearest_temp(T_crit) - temp_step,
                     nearest_temp(T_crit),
@@ -447,8 +442,8 @@ def export_converge(
             )
             T_nearest_floor = nearest_floor(maxtemps, T_crit)
             nT = int((T_nearest_floor - T_min_allowed) / temp_step) + 1
-            T = np.linspace(T_min_allowed, T_nearest_floor, nT)
-            T = np.append(T, T_crit)
+            T = jnp.linspace(T_min_allowed, T_nearest_floor, nT)
+            T = jnp.append(T, T_crit)
             T_max_allowed = T_crit
         # Calculate GCM properties for a range of temperatures
         comp_text = "" if export_mix else f"for {compound}"
@@ -500,7 +495,8 @@ def export_converge(
             "Component": fuel.compounds,
             "Mass Fraction": fuel.Y_0,
             "Mole Fraction": fuel.Y2X(fuel.Y_0),
-            converter.labels["molecular_weight"]: fuel.MW * converter.mw,
+            converter.labels["molecular_weight"]: fuel.MW.ustrip("kg/mol")
+            * converter.mw,
         }
         export_properties_to_csv(composition_file, composition_data)
 

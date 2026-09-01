@@ -16,6 +16,7 @@ FuelLib File Organization
     - ``constants.py``: physical constants (Boltzmann, Avogadro)
     - ``convert.py``: temperature conversion functions and Lennard-Jones calculations
     - ``utility.py``: utility functions for mixture properties and droplet calculations
+    - ``units.py``: shared helper for constructing ``unxt.Quantity`` values with units
     - ``_data_locator.py``: internal module for locating and validating fuel data directories
     
     - **data**: directory containing fuel data and metadata    
@@ -78,3 +79,4 @@ Click on links below for the full auto-documentation of the API.
     fuellib.constants
     fuellib.convert
     fuellib.utility
+    fuellib.units

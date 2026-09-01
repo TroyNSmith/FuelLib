@@ -10,9 +10,11 @@ import argparse
 import os
 import sys
 
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import unxt as u
 
 import fuellib as fl
 
@@ -166,8 +168,8 @@ def plot_composition(
     ):
         angle = (wedge.theta2 + wedge.theta1) / 2
         radius = 1.3
-        x = radius * np.cos(np.radians(angle))
-        y = radius * np.sin(np.radians(angle))
+        x = radius * jnp.cos(jnp.radians(angle))
+        y = radius * jnp.sin(jnp.radians(angle))
 
         # Determine horizontal alignment based on position
         ha = "left" if x > 0 else "right"
@@ -175,7 +177,7 @@ def plot_composition(
         # Add annotation with arrow
         ax2.annotate(
             f"{value:.1f}%",
-            xy=(np.cos(np.radians(angle)), np.sin(np.radians(angle))),
+            xy=(jnp.cos(jnp.radians(angle)), jnp.sin(jnp.radians(angle))),
             xytext=(x, y),
             ha=ha,
             va="center",
@@ -407,35 +409,38 @@ def plot_mixture_properties(
         # First check if experimental data exists - use its range if available
         if len(T_data) > 0:
             # Use data range if available
-            T_pred = fl.convert.C2K(np.linspace(T_data.min(), T_data.max(), 100))
+            T_pred_K = jnp.linspace(T_data.min(), T_data.max(), 100)
         else:
             # Use property-specific default range
             temp_min, temp_max = get_temp_range(prop_name)
-            T_pred = fl.convert.C2K(np.linspace(temp_min, temp_max, 100))
+            T_pred_K = jnp.linspace(temp_min, temp_max, 100)
+        T_pred = fl.convert.C2K(T_pred_K)
 
-        pred = np.zeros_like(T_pred)
+        # Plot units differ from the Quantity's native unit per property
+        plot_unit = {
+            "Density": "g/cm^3",
+            "VaporPressure": "kPa",
+            "Viscosity": "mm^2/s",
+            "SurfaceTension": "N/m",
+            "ThermalConductivity": "W/(m*K)",
+        }[prop_name]
+
         Y_li = fuel.Y_0
-
-        for i, T in enumerate(T_pred):
-            try:
-                if prop_name == "Density":
-                    pred[i] = (
-                        fuel.mixture_density(Y_li, T) * 1.0e-03
-                    )  # Convert to g/cm^3
-                elif prop_name == "VaporPressure":
-                    pred[i] = (
-                        fuel.mixture_vapor_pressure(Y_li, T) * 1.0e-03
-                    )  # Convert to kPa
-                elif prop_name == "Viscosity":
-                    pred[i] = (
-                        fuel.mixture_kinematic_viscosity(Y_li, T) * 1.0e6
-                    )  # Convert to mm^2/s
-                elif prop_name == "SurfaceTension":
-                    pred[i] = fuel.mixture_surface_tension(Y_li, T)
-                elif prop_name == "ThermalConductivity":
-                    pred[i] = fuel.mixture_thermal_conductivity(Y_li, T)
-            except (ValueError, TypeError, RuntimeError):
-                pred[i] = np.nan
+        T = u.Q(T_pred_K, "K")
+        try:
+            if prop_name == "Density":
+                value = fuel.mixture_density(Y_li, T)
+            elif prop_name == "VaporPressure":
+                value = fuel.mixture_vapor_pressure(Y_li, T)
+            elif prop_name == "Viscosity":
+                value = fuel.mixture_kinematic_viscosity(Y_li, T)
+            elif prop_name == "SurfaceTension":
+                value = fuel.mixture_surface_tension(Y_li, T)
+            elif prop_name == "ThermalConductivity":
+                value = fuel.mixture_thermal_conductivity(Y_li, T)
+            pred = value.ustrip(plot_unit)
+        except (ValueError, TypeError, RuntimeError):
+            pred = jnp.full_like(T_pred_K, jnp.nan)
 
         return T_data, prop_data, T_pred, pred
 
