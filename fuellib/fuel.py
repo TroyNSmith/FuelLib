@@ -194,6 +194,27 @@ class fuel:
             # Try to get decomposition name from metadata
             decompName = get_metadata_decomp_name(name, fuelDataDir)
 
+        self._set_data_paths(name, decompName, fuelDataDir)
+        self._load_group_decomposition()
+        self._classify_hydrocarbons()
+        self._compute_carbon_hydrogen_numbers()
+        self._load_compound_data()
+        self._validate_mixture_data()
+        self._compute_group_contribution_properties()
+
+    def _set_data_paths(
+        self, name: str, decompName: str, fuelDataDir: str | None
+    ) -> None:
+        """
+        Resolve and store data directories and file paths for this fuel instance.
+
+        :param name: Name of the mixture as it appears in its gcData file.
+        :type name: str
+        :param decompName: Name of the groupDecomposition file.
+        :type decompName: str
+        :param fuelDataDir: Directory where the fuel data is stored. If None, uses built-in embedded data.
+        :type fuelDataDir: str, optional
+        """
         # Determine and set data directories for this fuel instance
         if fuelDataDir is None:
             # Use built-in embedded data
@@ -220,11 +241,15 @@ class fuel:
         self.groupDecompFile = os.path.join(self.fuelDataDecompDir, f"{decompName}.csv")
         self.gcxgcFile = os.path.join(self.fuelDataGcDir, f"{name}_init.csv")
         self.gcmTableFile = os.path.join(gcmtable_dir, "gcmTable.csv")
+        self.gcmGaniFile = os.path.join(gcmtable_dir, "gcmGani.csv")
 
-        # Read functional group data for mixture (num_compounds,num_groups)
+    def _load_group_decomposition(self) -> None:
+        """Read functional group data for the mixture (num_compounds, num_groups)."""
         df_Nij = pd.read_csv(self.groupDecompFile)
         self.Nij = jnp.array(df_Nij.iloc[:, 1:].to_numpy())
 
+    def _classify_hydrocarbons(self) -> None:
+        """Classify each compound by hydrocarbon family (`fam`) and type (`hc_type`)."""
         # Classify hydrocarbon by family (used in thermal conductivity)
         # 0: saturated hydrocarbons
         # 1: aromatics
@@ -262,31 +287,40 @@ class fuel:
         self.hc_type[np.asarray(has_cyclo)] = "cyclo-alkane"
         self.hc_type[np.asarray(has_aromatic)] = "aromatic"
 
-        # Calculate carbon and hydrogen numbers from first-order group decomposition
-        # For jet fuels, use only alkyl (0-3) and aromatic (10-14) groups
-        # Alkyl: CH3=1C,3H; CH2=1C,2H; CH=1C,1H; C=1C,0H
-        # Aromatic: ACH=1C,1H; AC=1C,0H; ACCH3=2C,3H; ACCH2=2C,2H; ACCH=2C,1H
-        alkyl_carbons = jnp.array([1, 1, 1, 1])  # groups 0-3
-        alkyl_hydrogens = jnp.array([3, 2, 1, 0])
-        # Olefinic: group 4 appears to represent 2 carbons with 3 hydrogens in UNIFAC-based system
-        olefinic_carbons = jnp.array([2, 1, 1, 0, 0, 0])  # groups 4-9
-        olefinic_hydrogens = jnp.array([3, 1, 0, 0, 0, 0])
-        aromatic_carbons = jnp.array([1, 1, 2, 2, 2])  # groups 10-14
-        aromatic_hydrogens = jnp.array([1, 0, 3, 2, 1])
+    def _compute_carbon_hydrogen_numbers(self) -> None:
+        """Calculate carbon (`nC`) and hydrogen (`nH`) numbers from first-order group decomposition."""
+        # For jet fuels, use only alkyl (0-3), olefinic (4-9), and aromatic (10-14) groups
+        # Per-group atom counts come from the "carbons"/"hydrogens" rows of gcmGani.csv
+        df_gani = pd.read_csv(self.gcmGaniFile, skipinitialspace=True)
+        df_gani.columns = df_gani.columns.str.strip()
+        df_gani["Property"] = df_gani["Property"].str.strip()
+
+        def get_gani_row(property_name: str) -> np.ndarray:
+            """
+            Get a row of per-group atom counts from the gcmGani table.
+
+            :param property_name: Name of the property to retrieve ("carbons" or "hydrogens").
+            :type property_name: str
+            :return: Atom counts for the alkyl, olefinic, and aromatic groups (groups 0-14).
+            :rtype: np.ndarray
+            :raises ValueError: If property not found in the gcmGani table.
+            """
+            row = df_gani[df_gani["Property"] == property_name]
+            if row.empty:
+                raise ValueError(
+                    f"Property '{property_name}' not found in {self.gcmGaniFile}."
+                )
+            return row.iloc[:, 1:16].to_numpy().flatten().astype(float)
+
+        carbons_k = get_gani_row("carbons")  # groups 0-14
+        hydrogens_k = get_gani_row("hydrogens")
 
         # Alkyl + olefinic + aromatic contributions, vectorized over all compounds
-        self.nC = (
-            self.Nij[:, 0:4] @ alkyl_carbons
-            + self.Nij[:, 4:10] @ olefinic_carbons
-            + self.Nij[:, 10:15] @ aromatic_carbons
-        )
-        self.nH = (
-            self.Nij[:, 0:4] @ alkyl_hydrogens
-            + self.Nij[:, 4:10] @ olefinic_hydrogens
-            + self.Nij[:, 10:15] @ aromatic_hydrogens
-        )
+        self.nC = self.Nij[:, 0:15] @ jnp.array(carbons_k)
+        self.nH = self.Nij[:, 0:15] @ jnp.array(hydrogens_k)
 
-        # Read GCxGC/compound data
+    def _load_compound_data(self) -> None:
+        """Read GCxGC/compound data: names, formulas, PelePhysics keys, and mass fractions."""
         df_gcxgc = pd.read_csv(self.gcxgcFile)
 
         self.compounds = [
@@ -315,7 +349,8 @@ class fuel:
         self.Y_0 = jnp.array(df_gcxgc["Weight %"].to_numpy().flatten().astype(float))
         self.Y_0 /= jnp.sum(self.Y_0)
 
-        # Make sure mixture data is consistent:
+    def _validate_mixture_data(self) -> None:
+        """Make sure mixture data is consistent, raising ValueError otherwise."""
         if self.num_groups < self.N_g1:
             raise ValueError(
                 f"Insufficient mixture description:\n"
@@ -329,7 +364,8 @@ class fuel:
                 f"equal the number of compounds in {self.gcxgcFile}."
             )
 
-        # Read and store GCM table properties
+    def _compute_group_contribution_properties(self) -> None:
+        """Read the GCM table and compute critical/thermodynamic properties for each compound."""
         df_table = pd.read_csv(self.gcmTableFile)
         df_table = df_table.drop(columns=["Units"])
 
