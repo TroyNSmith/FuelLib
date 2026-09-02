@@ -27,8 +27,10 @@ from . import constants, convert, utility
 # Import data locator functions
 from ._data_locator import *
 from .fuel import fuel
+from .fuel_module import Fuel
 
 __all__ = [
+    "Fuel",
     "constants",
     "convert",
     "fuel",

@@ -18,7 +18,7 @@ build/
 # Virtual environments
 .env
 env/
-venv/
+.venv/
 
 # Figures from plotting tools
 composition_*.png
@@ -35,3 +35,9 @@ uv.lock
 
 # VS Code settings
 .vscode/
+
+# Caches
+.pytest_cache/
+.ruff_cache/
+.import_linter_cache/
+htmlcov/

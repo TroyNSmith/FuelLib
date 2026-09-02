@@ -35,6 +35,9 @@ dependencies = [
     "keepachangelog>=2.0.0",
     "unxt>=2.0.3",
     "jax>=0.4.29,<0.11.1",
+    "pint>=0.25.3",
+    "quaxed>=0.10.5",
+    "astropy>=8.0.1",
 ]
 
 [project.optional-dependencies]
