@@ -1,38 +1,23 @@
-"""Shared unxt Quantity helpers used across FuelLib."""
-
-from typing import Literal, Union, cast
+"""unxt and astropy units handling with helpers."""
 
 import astropy.units as apyu
-import numpy as np
-import unxt as u
-from jax import Array
-from unxt import AbstractQuantity, Quantity
+from unxt import AbstractQuantity
 
-# astropy has no built-in "atm" unit string; register one so it can be used like any other unit.
-apyu.add_enabled_units(
-    [apyu.def_unit("atm", 101325 * apyu.Pa, doc="Standard atmosphere")]
+# astropy does not have some common unit strings; we need to define and register them
+## Pressure (defined in terms of Pa)
+atm = apyu.def_unit("atm", 101325 * apyu.Pa, doc="Standard atmosphere")
+dyne_cm2 = apyu.def_unit("dyne/cm^2", 0.1 * apyu.Pa, doc="Dyne per square centimeter")
+cgs = apyu.def_unit("cgs", 0.1 * apyu.Pa, doc="CGS unit of pressure")
+mks = apyu.def_unit("mks", 1 * apyu.Pa, doc="MKS unit of pressure")
+## Temperature (defined in terms of K)
+fahrenheit = apyu.def_unit(
+    "Fahrenheit",
+    1 * apyu.imperial.deg_F,
+    doc="Fahrenheit temperature unit",
 )
 
-
-def load_quantity(
-    arr: Array | np.ndarray | float, native_unit: str, target_unit: str | None = None
-) -> u.Quantity:
-    """
-    Load a quantity with optional unit conversion.
-
-    :param arr: Raw (unitless) array to attach a unit to.
-    :type arr: jax.Array, numpy.ndarray, or float
-    :param native_unit: Unit that `arr` is expressed in.
-    :type native_unit: str
-    :param target_unit: Unit to convert to, if different from `native_unit`.
-    :type target_unit: str, optional
-    :return: Quantity wrapping `arr`.
-    :rtype: unxt.Quantity
-    """
-    q = u.Q(arr, native_unit)
-    if target_unit is not None:
-        q = q.uconvert(target_unit)
-    return cast(u.Quantity, q)
+## Register the new units with astropy so they can be used in unxt.Quantity objects.
+apyu.add_enabled_units([atm, mks, dyne_cm2, cgs, fahrenheit])
 
 
 def convert_temperature(temp: AbstractQuantity, target_unit: str) -> AbstractQuantity:
@@ -50,16 +35,4 @@ def convert_temperature(temp: AbstractQuantity, target_unit: str) -> AbstractQua
         return temp.uconvert(target_unit)
 
 
-def convert_pressure_to_atm(pressure: AbstractQuantity) -> AbstractQuantity:
-    """
-    Convert a pressure quantity to atmospheres.
-
-    :param pressure: Pressure quantity to convert.
-    :type pressure: AbstractQuantity
-    :return: Converted pressure quantity in atmospheres.
-    :rtype: unxt.AbstractQuantity
-    """
-    return pressure.to("atm")
-
-
-__all__ = ["convert_pressure_to_atm", "convert_temperature", "load_quantity"]
+__all__ = ["convert_temperature"]

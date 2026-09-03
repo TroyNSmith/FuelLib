@@ -1,3 +1,4 @@
+from functools import cached_property
 from pathlib import Path
 from typing import Literal
 
@@ -11,9 +12,10 @@ from scipy.optimize import curve_fit
 from unxt import AbstractQuantity, Quantity
 
 from ..constants import EPSILON_BY_KB_GAS, MW_GAS, SIGMA_GAS
-from ..units import convert_pressure_to_atm, convert_temperature
-from .correlation import tee_epsilon, tee_sigma
-from .gcm import GaniGCM
+from ..gcm import GaniGCM
+from ..rd import mol
+from ..units import convert_temperature
+from .correlation import mixing_rule, tee_epsilon, tee_sigma
 from .locator import DEFAULT_DATA_DIR
 
 # Front-load initialization to avoid overhead of loading GCM parameters for each Fuel instance
@@ -230,25 +232,146 @@ class Fuel:
         """
         return self.gani_decomp.shape[1]
 
-    @property
-    def num_carbons(self) -> int:
+    @cached_property
+    def num_carbons(self) -> npt.NDArray[np.int_]:
         """
         Return the number of carbon atoms in each component of the mixture.
 
         :return: Number of carbon atoms.
-        :rtype: int
+        :rtype: npt.NDArray[np.int_]
         """
-        raise NotImplementedError("num_carbons property is not implemented yet.")
+        if self.smiles and all(s.strip() != "" for s in self.smiles):
+            return np.array(
+                [mol.count_element(mol.from_smiles(s), "C") for s in self.smiles]
+            )
 
-    @property
-    def num_hydrogens(self) -> int:
+        raise NotImplementedError(
+            "num_carbons property is only available when SMILES strings are provided for the compounds."
+        )
+
+    @cached_property
+    def num_hydrogens(self) -> npt.NDArray[np.int_]:
         """
         Return the number of hydrogen atoms in each component of the mixture.
 
-        :return: Number of hydrogen atoms.
-        :rtype: int
+        :return: Number of hydrogen atoms in each component of the mixture.
+        :rtype: npt.NDArray[np.int_]
         """
-        raise NotImplementedError("num_hydrogens property is not implemented yet.")
+        if self.smiles and all(s.strip() != "" for s in self.smiles):
+            return np.array(
+                [mol.count_element(mol.from_smiles(s), "H") for s in self.smiles]
+            )
+
+        raise NotImplementedError(
+            "num_hydrogens property is only available when SMILES strings are provided for the compounds."
+        )
+
+    @cached_property
+    def _hydrocarbon(self) -> npt.NDArray[np.bool_]:
+        """
+        Return a list indicating whether each component of the mixture is a hydrocarbon.
+
+        :return: List of booleans indicating whether each component is a hydrocarbon.
+        :rtype: npt.NDArray[np.bool_]
+        """
+        if self.smiles and all(s.strip() != "" for s in self.smiles):
+            return np.array(
+                [mol.is_hydrocarbon(mol.from_smiles(s)) for s in self.smiles]
+            )
+
+        raise NotImplementedError(
+            "_hydrocarbon property is only available when SMILES strings are provided for the compounds."
+        )
+
+    @cached_property
+    def _aromatic(self) -> npt.NDArray[np.bool_]:
+        """
+        Return a list indicating whether each component of the mixture is aromatic.
+
+        :return: List of booleans indicating aromaticity of each component.
+        :rtype: npt.NDArray[np.bool_]
+        """
+        if self.smiles and all(s.strip() != "" for s in self.smiles):
+            return np.array([mol.has_aromatic(mol.from_smiles(s)) for s in self.smiles])
+
+        raise NotImplementedError(
+            "_aromatic property is only available when SMILES strings are provided for the compounds."
+        )
+
+    @cached_property
+    def _cyclic(self) -> npt.NDArray[np.bool_]:
+        """
+        Return a list indicating whether each component of the mixture is cyclic.
+
+        :return: List of booleans indicating cyclicity of each component.
+        :rtype: npt.NDArray[np.bool_]
+        """
+        if self.smiles and all(s.strip() != "" for s in self.smiles):
+            return np.array([mol.has_ring(mol.from_smiles(s)) for s in self.smiles])
+
+        raise NotImplementedError(
+            "_cyclic property is only available when SMILES strings are provided for the compounds."
+        )
+
+    @cached_property
+    def _branched(self) -> npt.NDArray[np.bool_]:
+        """
+        Return a list indicating whether each component of the mixture is branched.
+
+        :return: List of booleans indicating branching of each component.
+        :rtype: npt.NDArray[np.bool_]
+        """
+        if self.smiles and all(s.strip() != "" for s in self.smiles):
+            return np.array([mol.has_branch(mol.from_smiles(s)) for s in self.smiles])
+
+        raise NotImplementedError(
+            "_branched property is only available when SMILES strings are provided for the compounds."
+        )
+
+    @cached_property
+    def _alkene(self) -> npt.NDArray[np.bool_]:
+        """
+        Return a list indicating whether each component of the mixture is an alkene.
+
+        :return: List of booleans indicating whether each component is an alkene.
+        :rtype: npt.NDArray[np.bool_]
+        """
+        if self.smiles and all(s.strip() != "" for s in self.smiles):
+            return np.array(
+                [mol.has_double_bond(mol.from_smiles(s)) for s in self.smiles]
+            )
+
+        raise NotImplementedError(
+            "_alkene property is only available when SMILES strings are provided for the compounds."
+        )
+
+    @cached_property
+    def hydrocarbon_types(self) -> npt.NDArray[np.str_]:
+        """
+        Return a list indicating the hydrocarbon type of each component of the mixture.
+
+        :return: List of hydrocarbon types for each component.
+        :rtype: npt.NDArray[np.str_]
+        """
+        if self.smiles and all(s.strip() != "" for s in self.smiles):
+            if not all(self._hydrocarbon):
+                raise NotImplementedError(
+                    "hydrocarbon_types property is only available for mixtures where all components are hydrocarbons."
+                )
+            # "0123456789" sets the string length to 10, which is the max length of the hydrocarbon type strings
+            # Array filled in descending order:
+            # n-alkane < iso-alkane < alkene < cyclic < aromatic
+            hc_types = np.array(["0123456789"] * self.num_compounds, dtype=np.str_)
+            hc_types[:] = "n-alkane"  # Set default to n-alkane
+            hc_types[self._branched] = "iso-alkane"
+            hc_types[self._alkene] = "alkene"
+            hc_types[self._cyclic] = "cyclic"
+            hc_types[self._aromatic] = "aromatic"
+            return hc_types
+
+        raise NotImplementedError(
+            "hydrocarbon_types property is only available when SMILES strings are provided for the compounds."
+        )
 
     # Derived properties
     ## Cannot cache these because they depend on properties that can be updated (e.g., MW, Tc, Pc, etc.)
@@ -458,55 +581,43 @@ class Fuel:
         self,
         T: AbstractQuantity,
         *,
-        unit: Literal["mks", "cgs", "bar", "atm"] = "mks",
+        unit: str = "mks",
         correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, AbstractQuantity]:
         """
         Calculate the Antoine coefficients for the saturation pressure of fuel compounds over a range of temperatures.
 
         :param T: Temperatures at which to calculate the Antoine coefficients.
         :type T: AbstractQuantity
-        :param unit: Desired units for the output. Options are "mks", "cgs", "bar", or "atm". Defaults to "mks".
-        :type unit: Literal["mks", "cgs", "bar", "atm"], optional
+        :param unit: Desired units for the Antoine Equation to be expressed in. Defaults to "mks".
+        :type unit: str, optional
         :param correlation: The correlation method to use for calculating Antoine coefficients.
             Options are "Ambrose-Walton" or "Lee-Kesler". Defaults to "Lee-Kesler".
         :type correlation: Literal["Ambrose-Walton", "Lee-Kesler"], optional
-        :return: Tuple containing the Antoine coefficients (A, B, C) and the conversion factor (D).
-        :rtype: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        :return: Tuple containing the Antoine coefficients (A, B, C) and the unit as a Quantity.
+        :rtype: tuple[np.ndarray, np.ndarray, np.ndarray, AbstractQuantity]
         """
-        if qnp.shape(T)[0] < 3:
+        if qnp.isscalar(T) or qnp.shape(T)[0] < 3:
             raise ValueError(
                 "At least three temperature points are required to calculate Antoine coefficients."
             )
 
         def _antoine_eq(T, A, B, C):
             """Antoine equation for vapor pressure."""
-            return 10 ** (A - (B / (T + C)))
-
-        # Hard-coded unit conversions for pressure because curve_fit doesn't handle unxt quantities
-        # and unxt doesn't some of recognize the unit strings used here (e.g., "atm")
-        conversions = {
-            "mks": 1.0,  # Pa
-            "cgs": 1e-1,  # dyn/cm^2
-            "bar": 1.0e5,  # bar
-            "atm": 1.01325e5,  # atm
-        }
+            return A - (B / (T + C))
 
         T = convert_temperature(T, "K")
 
         A = np.zeros(self.num_compounds)
         B = np.zeros(self.num_compounds)
         C = np.zeros(self.num_compounds)
-        D = np.zeros(self.num_compounds) + conversions[unit]  # Store conversion factor
         for i in range(self.num_compounds):
-            psat = (
-                self.psat(T, unit="Pa", correlation=correlation).value[:, i]
-                / conversions[unit]
-            )
-            popt, _ = curve_fit(_antoine_eq, T.value, psat, p0=[1, 1e3, -1])
+            psat = self.psat(T, unit=unit, correlation=correlation).value[:, i]
+            logP = np.log10(psat)
+            popt, _ = curve_fit(_antoine_eq, T.value, logP, p0=[1, 1e3, -1])
             A[i], B[i], C[i] = popt
 
-        return A, B, C, D
+        return A, B, C, Quantity(1.0, unit)
 
     def latent_heat_vaporization(
         self, T: AbstractQuantity, *, unit: str = "J/kg"
@@ -679,7 +790,7 @@ class Fuel:
             )
 
         # Brock-Bird/Pitzer correlation is calibrated to Pc in atm and Tc in K, giving dyn/cm
-        Pc_atm = convert_pressure_to_atm(self.Pc)
+        Pc_atm = self.Pc.to("atm")
         C = Quantity(1.0, "dyn/(cm*atm^(2/3)*K^(1/3))")
 
         st = (
@@ -692,6 +803,56 @@ class Fuel:
 
         return st.to(unit)
 
+    def thermal_conductivity(
+        self, T: AbstractQuantity, *, unit: str = "W/(m*K)"
+    ) -> AbstractQuantity:
+        """
+        Calculate the thermal conductivity of fuel compounds over a range of temperatures.
+
+        :param T: Temperatures at which to calculate the thermal conductivity.
+        :type T: AbstractQuantity
+        :param unit: Desired unit for the output. Defaults to "W/(m*K)".
+        :type unit: str
+        :return: Thermal conductivity of fuel compounds at the specified temperature.
+        :rtype: AbstractQuantity
+        """
+        T = _atleast_col(T)  # Ensure T has a trailing axis for broadcasting
+        T = convert_temperature(T, "K")
+        # Latini correlation is calibrated to bare Tb/Tc in K and MW in g/mol, giving tc directly in W/(m*K)
+        Tb = qnp.array(convert_temperature(self.Tb, "K").value)
+        Tc = qnp.array(convert_temperature(self.Tc, "K").value)
+        Tr = qnp.array(T.value) / Tc
+        MW = qnp.array(self.MW.to("g/mol").value)
+
+        hc_types = self.hydrocarbon_types
+        aromatic = hc_types == "aromatic"
+        cyclic = hc_types == "cyclic"
+        alkene = hc_types == "alkene"
+        saturated = (hc_types == "n-alkane") | (hc_types == "iso-alkane")
+
+        alpha = 1.2
+        gamma = 0.167
+
+        # Hydrocarbon type-dependent constants for thermal conductivity correlation
+        Astar = qnp.where(
+            aromatic,  # Check for aromatic hydrocarbons first
+            0.0346,
+            qnp.where(
+                cyclic,  # Check for cyclic hydrocarbons next
+                0.0310,
+                qnp.where(
+                    alkene,  # Check for alkenes next
+                    0.0361,
+                    0.0035,
+                ),
+            ),
+        )
+        MW_beta = qnp.where(saturated, qnp.sqrt(MW), MW)
+
+        A = (Astar * Tb**alpha) / (MW_beta * Tc**gamma)
+        tc = A * qnp.power(1.0 - Tr, 0.38) / qnp.power(Tr, 1.0 / 6.0)
+        return Quantity(tc, "W/(m*K)").to(unit)
+
     # Mixture property correlations
     def mean_molecular_weight(self, *, unit: str = "kg/mol") -> AbstractQuantity:
         """
@@ -701,6 +862,191 @@ class Fuel:
         :rtype: AbstractQuantity
         """
         return qnp.sum(self.MW / self.Y_0).to(unit)
+
+    def mixture_density(
+        self, T: AbstractQuantity, *, unit: str = "kg/m^3"
+    ) -> AbstractQuantity:
+        """
+        Calculate the density of the mixture over a range of temperatures.
+
+        :param T: Temperatures at which to calculate the density.
+        :type T: AbstractQuantity
+        :param unit: Desired unit for the output. Defaults to "kg/m^3".
+        :type unit: str
+        :return: Density of the mixture at the specified temperature.
+        :rtype: AbstractQuantity
+        """
+        # molar_liquid_vol already handles T conversion and broadcasting, so we can skip it here
+        return qnp.sum(self.Y_0 * (self.MW / self.molar_liquid_vol(T)), axis=-1).to(
+            unit
+        )
+
+    def mixture_kinematic_viscosity(
+        self,
+        T: AbstractQuantity,
+        *,
+        unit: str = "mm^2/s",
+        correlation: Literal["Kendall-Monroe", "Arrhenius"] = "Kendall-Monroe",
+    ) -> AbstractQuantity:
+        """
+        Calculate the kinematic viscosity of the mixture over a range of temperatures.
+
+        :param T: Temperatures at which to calculate the kinematic viscosity.
+        :type T: AbstractQuantity
+        :param unit: Desired unit for the output. Defaults to "mm^2/s".
+        :type unit: str
+        :param correlation: Correlation method to use for calculating kinematic viscosity. Options are "Kendall-Monroe" or "Arrhenius". Defaults to "Kendall-Monroe".
+        :type correlation: Literal["Kendall-Monroe", "Arrhenius"], optional
+        :return: Kinematic viscosity of the mixture at the specified temperature.
+        :rtype: AbstractQuantity
+        """
+        # viscosity_kinematic already handles T conversion and broadcasting, so we can skip it here
+        # Stripping units from nu_i for the correlation calculations, then reattaching units at the end
+        nu_i = qnp.array(self.viscosity_kinematic(T).to("m^2/s").value)
+        Xi = self.Y2X(self.Y_0)
+
+        if correlation == "Kendall-Monroe":
+            return Quantity(qnp.exp(qnp.sum(Xi * qnp.log(nu_i), axis=-1)), "m^2/s").to(
+                unit
+            )
+
+        elif correlation == "Arrhenius":
+            return Quantity(
+                jnp.sum(Xi * qnp.power(nu_i, 1.0 / 3.0), axis=-1) ** 3.0, "m^2/s"
+            ).to(unit)
+
+        raise ValueError(
+            f"Invalid correlation '{correlation}'. Must be 'Kendall-Monroe' or 'Arrhenius'."
+        )
+
+    def mixture_dynamic_viscosity(
+        self,
+        T: AbstractQuantity,
+        *,
+        unit: str = "Pa*s",
+        correlation: Literal["Kendall-Monroe", "Arrhenius"] = "Kendall-Monroe",
+    ) -> AbstractQuantity:
+        """
+        Calculate the dynamic viscosity of the mixture over a range of temperatures.
+
+        :param T: Temperatures at which to calculate the dynamic viscosity.
+        :type T: AbstractQuantity
+        :param unit: Desired unit for the output. Defaults to "Pa*s".
+        :type unit: str
+        :param correlation: Correlation method to use for calculating dynamic viscosity. Options are "Kendall-Monroe" or "Arrhenius". Defaults to "Kendall-Monroe".
+        :type correlation: Literal["Kendall-Monroe", "Arrhenius"], optional
+        :return: Dynamic viscosity of the mixture at the specified temperature.
+        :rtype: AbstractQuantity
+        """
+        # Skipping conversion and broadcasting here because mixture_kinematic_viscosity and mixture_density already handle it
+        return (
+            self.mixture_kinematic_viscosity(T, correlation=correlation)
+            * self.mixture_density(T)
+        ).to(unit)
+
+    def mixture_vapor_pressure(
+        self,
+        T: AbstractQuantity,
+        *,
+        unit: str = "Pa",
+        correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
+    ) -> AbstractQuantity:
+        """
+        Calculate the vapor pressure of the mixture over a range of temperatures.
+
+        :param T: Temperatures at which to calculate the vapor pressure.
+        :type T: AbstractQuantity
+        :param unit: Desired unit for the output. Defaults to "Pa".
+        :type unit: str
+        :param correlation: Correlation method to use for calculating vapor pressure. Options are "Ambrose-Walton" or "Lee-Kesler". Defaults to "Lee-Kesler".
+        :type correlation: Literal["Ambrose-Walton", "Lee-Kesler"], optional
+        :return: Vapor pressure of the mixture at the specified temperature.
+        :rtype: AbstractQuantity
+        """
+        # psat already handles T conversion and broadcasting, so we can skip it here
+        Xi = self.Y2X(self.Y_0)
+        return qnp.sum(Xi * self.psat(T, correlation=correlation), axis=-1).to(unit)
+
+    def mixture_vapor_pressure_antoine_coeffs(
+        self,
+        T: AbstractQuantity,
+        *,
+        unit: str = "mks",
+        correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, AbstractQuantity]:
+        """
+        Calculate the Antoine coefficients for the vapor pressure of the mixture over a range of temperatures.
+
+        :param T: Temperatures at which to calculate the Antoine coefficients.
+        :type T: AbstractQuantity
+        :param unit: Desired units for the Antoine Equation to be expressed in. Defaults to "mks".
+        :type unit: str, optional
+        :param correlation: The correlation method to use for calculating Antoine coefficients.
+            Options are "Ambrose-Walton" or "Lee-Kesler". Defaults to "Lee-Kesler".
+        :type correlation: Literal["Ambrose-Walton", "Lee-Kesler"], optional
+        :return: Tuple containing the Antoine coefficients (A, B, C) and the unit as a Quantity.
+        :rtype: tuple[np.ndarray, np.ndarray, np.ndarray, AbstractQuantity]
+        """
+        if qnp.isscalar(T) or qnp.shape(T)[0] < 3:
+            raise ValueError(
+                "At least three temperature points are required to calculate Antoine coefficients."
+            )
+
+        def _antoine_eq(T, A, B, C):
+            """Antoine equation for vapor pressure."""
+            return A - (B / (T + C))
+
+        T = convert_temperature(T, "K")
+
+        Pvals = self.mixture_vapor_pressure(T, unit=unit, correlation=correlation).value
+        logP = np.log10(Pvals)
+        popt, _ = curve_fit(_antoine_eq, T.value, logP, p0=[1, 1e3, -1])
+        A, B, C = popt
+
+        return A, B, C, Quantity(1.0, unit)
+
+    def mixture_surface_tension(
+        self,
+        T: AbstractQuantity,
+        *,
+        unit: str = "N/m",
+        correlation: Literal["Brock-Bird", "Pitzer"] = "Brock-Bird",
+    ) -> AbstractQuantity:
+        """
+        Calculate the surface tension of the mixture over a range of temperatures.
+
+        :param T: Temperatures at which to calculate the surface tension.
+        :type T: AbstractQuantity
+        :param unit: Desired unit for the output. Defaults to "N/m".
+        :type unit: str
+        :param correlation: Correlation method to use for calculating surface tension. Options are "Brock-Bird" or "Pitzer". Defaults to "Brock-Bird".
+        :type correlation: Literal["Brock-Bird", "Pitzer"], optional
+        :return: Surface tension of the mixture at the specified temperature.
+        :rtype: AbstractQuantity
+        """
+        # surface_tension already handles T conversion and broadcasting, so we can skip it here
+        Xi = self.Y2X(self.Y_0)
+        sti = self.surface_tension(T, correlation=correlation)
+        return mixing_rule(sti, Xi, pseudo_prop="arithmetic").to(unit)
+
+    def mixture_thermal_conductivity(
+        self, T: AbstractQuantity, *, unit: str = "W/(m*K)"
+    ) -> AbstractQuantity:
+        """
+        Calculate the thermal conductivity of the mixture over a range of temperatures.
+
+        :param T: Temperatures at which to calculate the thermal conductivity.
+        :type T: AbstractQuantity
+        :param unit: Desired unit for the output. Defaults to "W/(m*K)".
+        :type unit: str
+        :return: Thermal conductivity of the mixture at the specified temperature.
+        :rtype: AbstractQuantity
+        """
+        # Stripping units from tc for the correlation calculations, then reattaching units at the end
+        tc = qnp.array(self.thermal_conductivity(T, unit="W/(m*K)").value)
+        return Quantity(
+            qnp.power(qnp.sum(self.Y_0 * qnp.power(tc, -2.0), axis=-1), -0.5), "W/(m*K)"
+        ).to(unit)
 
     # Utility functions
     def mass2Y(self, mass: AbstractQuantity) -> Array:
@@ -968,27 +1314,6 @@ class Fuel:
         """
         _check_valid_property(value, self.num_compounds, "Hv_stp")
         self._Hv_stp = value.to("J/mol")
-
-    @property
-    def Lv_stp(self) -> AbstractQuantity:
-        """
-        Return the latent heat of vaporization at STP of the compounds in the mixture.
-
-        :return: Latent heat of vaporization at STP of the compounds.
-        :rtype: AbstractQuantity
-        """
-        return self._Lv_stp
-
-    @Lv_stp.setter
-    def Lv_stp(self, value: AbstractQuantity) -> None:
-        """
-        Set the latent heat of vaporization at STP of the compounds in the mixture.
-
-        :param value: Latent heat of vaporization at STP of the compounds.
-        :type value: AbstractQuantity
-        """
-        _check_valid_property(value, self.num_compounds, "Lv_stp")
-        self._Lv_stp = value.to("J/mol")
 
     @property
     def Cp_stp(self) -> AbstractQuantity:
