@@ -336,13 +336,11 @@ def export_converge(
         X_li = fuel.Y2X(Y_li)
         T_q = u.Q(T_array, "K")
 
-        rho = fuel.mixture_density(Y_li, T_q).ustrip("kg/m^3")
-        mu = fuel.mixture_dynamic_viscosity(Y_li, T_q).ustrip("Pa*s")
-        pv = fuel.mixture_vapor_pressure(Y_li, T_q).ustrip("Pa")
-        surface_tension = fuel.mixture_surface_tension(Y_li, T_q).ustrip("N/m")
-        thermal_conductivity = fuel.mixture_thermal_conductivity(Y_li, T_q).ustrip(
-            "W/(m*K)"
-        )
+        rho = fuel.mixture_density(T_q).ustrip("kg/m^3")
+        mu = fuel.mixture_dynamic_viscosity(T_q).ustrip("Pa*s")
+        pv = fuel.mixture_vapor_pressure(T_q).ustrip("Pa")
+        surface_tension = fuel.mixture_surface_tension(T_q).ustrip("N/m")
+        thermal_conductivity = fuel.mixture_thermal_conductivity(T_q).ustrip("W/(m*K)")
 
         # Generic mixing rules for latent heat and specific heat
         Lv = fl.utility.mixing_rule(fuel.latent_heat_vaporization(T_q), X_li).ustrip(
@@ -367,16 +365,17 @@ def export_converge(
         """
         # comp_idx is fixed here, so every formula broadcasts a scalar Tc/Pc/... against
         # the whole T_array - one Quantity call per property instead of a per-T Python loop.
+        # Methods return all compounds; select comp_idx's column since comp_idx is no longer accepted.
         T_q = u.Q(T_array, "K")
-        rho = fuel.density(T_q, comp_idx=comp_idx).ustrip("kg/m^3")
-        mu = fuel.viscosity_dynamic(T_q, comp_idx=comp_idx).ustrip("Pa*s")
-        pv = fuel.psat(T_q, comp_idx=comp_idx).ustrip("Pa")
-        surface_tension = fuel.surface_tension(T_q, comp_idx=comp_idx).ustrip("N/m")
-        thermal_conductivity = fuel.thermal_conductivity(T_q, comp_idx=comp_idx).ustrip(
+        rho = fuel.density(T_q)[:, comp_idx].ustrip("kg/m^3")
+        mu = fuel.viscosity_dynamic(T_q)[:, comp_idx].ustrip("Pa*s")
+        pv = fuel.psat(T_q)[:, comp_idx].ustrip("Pa")
+        surface_tension = fuel.surface_tension(T_q)[:, comp_idx].ustrip("N/m")
+        thermal_conductivity = fuel.thermal_conductivity(T_q)[:, comp_idx].ustrip(
             "W/(m*K)"
         )
-        Lv = fuel.latent_heat_vaporization(T_q, comp_idx=comp_idx).ustrip("J/kg")
-        Cl = fuel.Cl(T_q, comp_idx=comp_idx).ustrip("J/(kg*K)")
+        Lv = fuel.latent_heat_vaporization(T_q)[:, comp_idx].ustrip("J/kg")
+        Cl = fuel.Cl(T_q)[:, comp_idx].ustrip("J/(kg*K)")
 
         return mu, surface_tension, Lv, pv, rho, Cl, thermal_conductivity
 
@@ -642,7 +641,7 @@ def main():
     _ = fl.get_metadata_decomp_name(fuel_name, fuel_data_dir)
 
     # Create the fuel object
-    fuel = fl.fuel(fuel_name, fuelDataDir=fuel_data_dir)
+    fuel = fl.Fuel(fuel_name, fuelDataDir=fuel_data_dir)
 
     # Export properties for Converge
     export_converge(

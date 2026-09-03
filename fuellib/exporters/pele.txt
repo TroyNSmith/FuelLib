@@ -6,6 +6,7 @@ import urllib.error
 import urllib.request
 from datetime import UTC, datetime
 
+import numpy as np
 import pandas as pd
 import unxt as u
 from scipy import stats as st
@@ -162,6 +163,12 @@ def _get_pypi_repo_url():
         return "https://pypi.org/project/fuellib/"
 
 
+def _family_codes(fuel):
+    """Map hydrocarbon_types labels to the legacy 0-3 Pele family codes."""
+    codes = {"aromatic": 1, "cyclic": 2, "alkene": 3}
+    return np.array([codes.get(t, 0) for t in fuel.hydrocarbon_types])
+
+
 def get_filename(fuel_name, liq_prop_model, export_mix, path):
     """
     Generate appropriate filename based on parameters.
@@ -212,7 +219,7 @@ def create_individual_compounds_dataframe(fuel, compound_names, converter):
     return pd.DataFrame(
         {
             "Compound": compound_names,
-            "Family": fuel.fam,
+            "Family": _family_codes(fuel),
             "Y_0": fuel.Y_0,
             "MW": fuel.MW.ustrip(converter.MW),
             "Tc": fuel.Tc.ustrip("K"),
@@ -259,9 +266,9 @@ def create_mixture_dataframe(fuel, export_mix_name, converter):
     return pd.DataFrame(
         {
             "Compound": [export_mix_name],
-            "Family": [st.mode(fuel.fam).mode],
+            "Family": [st.mode(_family_codes(fuel)).mode],
             "Y_0": [1.0],
-            "MW": [fuel.mean_molecular_weight(fuel.Y_0).ustrip(converter.MW)],
+            "MW": [fuel.mean_molecular_weight().ustrip(converter.MW)],
             "Tc": [fl.utility.mixing_rule(fuel.Tc, X).ustrip("K")],
             "Pc": [fl.utility.mixing_rule(fuel.Pc, X).ustrip(converter.P)],
             "Vc": [fl.utility.mixing_rule(fuel.Vc, X).ustrip(converter.Vm)],
@@ -451,7 +458,7 @@ def export_pele(
         # Calculate density at 298.15 K
         ref_T = u.Q(298.15, "K")
         if export_mix:
-            rho = fuel.mixture_density(fuel.Y_0, ref_T)
+            rho = fuel.mixture_density(ref_T)
         else:
             rho = fuel.density(ref_T)
         df["rho"] = rho.ustrip(converter.rho)
@@ -459,19 +466,29 @@ def export_pele(
         # Get Antoine coefficients
         if psat_antoine:
             if export_mix:
+                # No more auto per-mixture range, so pick 273.15 K to the mixing-rule Tb
+                Tb_mix = float(
+                    fl.utility.mixing_rule(fuel.Tb.ustrip("K"), fuel.Y2X(fuel.Y_0))
+                )
+                T_fit = u.Q(np.linspace(273.15, Tb_mix, 20), "K")
                 (
                     psat_A,
                     psat_B,
                     psat_C,
                     psat_D,
-                ) = fuel.mixture_vapor_pressure_antoine_coeffs(fuel.Y_0, units=units)
+                ) = fuel.mixture_vapor_pressure_antoine_coeffs(T_fit, unit=converter.P)
             else:
-                psat_A, psat_B, psat_C, psat_D = fuel.psat_antoine_coeffs(units=units)
+                # No more auto per-compound range, so pick 273.15 K to the lowest Tb
+                Tb_min = float(min(fuel.Tb.ustrip("K")))
+                T_fit = u.Q(np.linspace(273.15, Tb_min, 20), "K")
+                psat_A, psat_B, psat_C, psat_D = fuel.psat_antoine_coeffs(
+                    T_fit, unit=converter.P
+                )
 
             df["psat_A"] = psat_A
             df["psat_B"] = psat_B
             df["psat_C"] = psat_C
-            df["psat_D"] = psat_D
+            df["psat_D"] = psat_D.ustrip(converter.P)
 
     # Dictionary of formatted names
     formatted_names = {
@@ -746,7 +763,7 @@ def main():
     print(f"    Fuel data directory: {fuel_data_dir}")
 
     # Create the groupContribution object for the specified fuel
-    fuel = fl.fuel(fuel_name, decompName=fuel_decomp_name, fuelDataDir=fuel_data_dir)
+    fuel = fl.Fuel(fuel_name, decompName=fuel_decomp_name, fuelDataDir=fuel_data_dir)
 
     # Export properties for Pele
     export_pele(
