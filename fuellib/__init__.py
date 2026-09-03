@@ -22,7 +22,7 @@ jax.config.update("jax_enable_x64", True)
 
 # Import fuel class
 # Import submodules for namespacing
-from . import constants, convert, gcm, rd, utility
+from . import constants, convert, exporters, gcm, rd, utility
 
 # Import data locator functions
 from ._data_locator import *
@@ -32,6 +32,7 @@ __all__ = [
     "Fuel",
     "constants",
     "convert",
+    "exporters",
     "gcm",
     "get_data_dir",
     "get_fueldata_decomp_dir",

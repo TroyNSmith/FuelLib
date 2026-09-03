@@ -38,6 +38,7 @@ dependencies = [
     "pint>=0.25.3",
     "quaxed>=0.10.5",
     "astropy>=8.0.1",
+    "click>=8.5.0",
 ]
 
 [project.optional-dependencies]
@@ -57,7 +58,7 @@ dev = [
 ]
 
 [project.scripts]
-fl-export-converge = "fuellib.exporters.converge:main"
+fl-export-converge = "fuellib.exporters.converge_updated:export_converge"
 fl-export-pele = "fuellib.exporters.pele:main"
 fl-build-docs = "fuellib.cli.build_docs:main"
 fl-clean-docs = "fuellib.cli.clean_docs:main"
