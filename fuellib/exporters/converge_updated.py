@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def _warn_clipped_range(subject: str, low, high) -> None:
-    """Log a banner-style warning that temperatures were clipped to a valid range."""
+    """Log a warning that temperatures were clipped to a valid range."""
     msg = f"\n\033[1;31mWARNING\033[0m: Clipping temperatures for {subject} to the valid range [{low:.2f}, {high:.2f}]"
     logger.warning(msg)
 
@@ -184,7 +184,7 @@ def export_converge(
     """
     Export mixture properties for a given fuel to a CSV file formatted for Converge.
     """
-    logger.info("\033[1;34mPreparing to export mixture properties:\033[0m")
+    logger.info("\n\033[1;34mPREPARING TO EXPORT FUEL PROPERTIES:\033[0m")
     logger.info(f"\tFuel name: {fuel_name}")
     if export_mix:
         logger.info("\tExporting mixture properties: True")
@@ -220,12 +220,13 @@ def export_converge(
         Tc_mixture = convert_temperature(mixing_rule(Tc, X), temp_units)
         Tf_mixture = convert_temperature(mixing_rule(Tm, X), temp_units)
 
-        logger.info(f"\nEstimated mixture freezing temp: {Tf_mixture:.2f}")
-        logger.info(f"Min freezing temp min(Tm_i): {min(Tm):.2f}")
-        logger.info(f"Max freezing temp max(Tm_i): {max(Tm):.2f}")
-        logger.info(f"Estimated mixture critical temp: {Tc_mixture:.2f}")
-        logger.info(f"Min critical temp min(Tc_i): {min(Tc):.2f}")
-        logger.info(f"Max critical temp max(Tc_i): {max(Tc):.2f}")
+        logger.info("\n\033[1;33mESTIMATED MIXTURE PROPERTIES:\033[0m")
+        logger.info(f"\tMixture freezing temp: {Tf_mixture:.2f}")
+        logger.info(f"\tMin component freezing temp min (Tm_i): {min(Tm):.2f}")
+        logger.info(f"\tMax component freezing temp max( Tm_i): {max(Tm):.2f}")
+        logger.info(f"\tMixture critical temp: {Tc_mixture:.2f}")
+        logger.info(f"\tMin component critical temp min (Tc_i): {min(Tc):.2f}")
+        logger.info(f"\tMax component critical temp max (Tc_i): {max(Tc):.2f}")
 
         # Compute all mixture properties over the full temperature range at once
         logger.info(
