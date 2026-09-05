@@ -1,6 +1,8 @@
 """unxt and astropy units handling with helpers."""
 
 import astropy.units as apyu
+import jax.numpy as jnp
+from jax import Array
 from unxt import AbstractQuantity
 
 # astropy does not have some common unit strings; we need to define and register them
@@ -35,4 +37,16 @@ def convert_temperature(temp: AbstractQuantity, target_unit: str) -> AbstractQua
         return temp.uconvert(target_unit)
 
 
-__all__ = ["convert_temperature"]
+def strip(quant: AbstractQuantity) -> Array:
+    """
+    Strip the units from an AbstractQuantity and return the raw value in an array.
+
+    :param quant: Quantity with units.
+    :type quant: AbstractQuantity
+    :return: Raw array without units.
+    :rtype: jax.Array
+    """
+    return jnp.array(quant.value)
+
+
+__all__ = ["convert_temperature", "strip"]

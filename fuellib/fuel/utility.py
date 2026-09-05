@@ -4,30 +4,6 @@ import quaxed.numpy as jnp
 import unxt as u
 
 
-def mixing_rule(var_n, X, pseudo_prop="arithmetic"):
-    """
-    Mixing rules for computing mixture properties.
-
-    :param var_n: Individual compound properties (plain array or unxt.Quantity).
-    :type var_n: jax.Array or unxt.Quantity
-    :param X: Mole fractions of the compounds.
-    :type X: jax.Array
-    :param pseudo_prop: Type of mean ("arithmetic" or "geometric").
-    :type pseudo_prop: str, optional
-    :return: Mixture property value.
-    :rtype: float or unxt.Quantity
-    """
-    # Leading "..." batch axis lets var_n be (num_compounds,) for a scalar T
-    # or (num_times, num_compounds) for an array of temperatures; X stays (num_compounds,).
-    if pseudo_prop.casefold() == "geometric":
-        # Use geometric mean definition for the pseudo property
-        var_ij = jnp.sqrt(var_n[..., :, None] * var_n[..., None, :])
-    else:
-        # Use arithmetic definition for the pseudo property
-        var_ij = (var_n[..., :, None] + var_n[..., None, :]) / 2
-    return jnp.sum(X[..., :, None] * X[..., None, :] * var_ij, axis=(-2, -1))
-
-
 def droplet_volume(r):
     """
     Calculate spherical volume of a droplet given the radius.
@@ -63,4 +39,4 @@ def droplet_mass(fuel, r, Yi, T):
         return u.Q(jnp.zeros_like(fuel.MW.value), "kg")
 
 
-__all__ = ["droplet_mass", "droplet_volume", "mixing_rule"]
+__all__ = ["droplet_mass", "droplet_volume"]

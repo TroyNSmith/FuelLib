@@ -11,10 +11,10 @@ import quaxed.numpy as qnp
 import unxt as u
 from unxt import AbstractQuantity
 
-from ..units import convert_temperature
+from ..utils.units import convert_temperature
 
 if TYPE_CHECKING:
-    from ..fuel_module.core import Fuel
+    from ..fuel.core import Fuel
 
 
 class GaniGCM:

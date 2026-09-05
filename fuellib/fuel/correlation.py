@@ -6,7 +6,7 @@ import quaxed.numpy as qnp
 from jax import Array
 from unxt import AbstractQuantity, Quantity
 
-from ..units import convert_temperature
+from ..utils.units import convert_temperature
 
 if TYPE_CHECKING:
     from .core import Fuel

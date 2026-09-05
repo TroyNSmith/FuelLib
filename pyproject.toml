@@ -117,6 +117,9 @@ include = [
     "tests",
 ]
 
+[tool.ty]
+python = "./.venv/bin/python"
+
 # Import-linter configurations
 [tool.importlinter]
 root_package = "fuellib"

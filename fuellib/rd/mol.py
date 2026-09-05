@@ -1,10 +1,12 @@
 """RDKit Mol module."""
 
+from collections import Counter
+
 from rdkit import Chem
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.rdDistGeom import EmbedMolecule
 
-from ..element import number
+from ..utils.element import mass, number
 
 
 def from_smiles(smiles: str, *, with_coords: bool = False) -> Mol:
@@ -26,15 +28,19 @@ def from_smiles(smiles: str, *, with_coords: bool = False) -> Mol:
     return mol
 
 
-def smiles(mol: Mol) -> str:
+def smiles(mol: Mol, *, include_H: bool = False) -> str:
     """
     Get the SMILES representation of a molecule.
 
     :param mol: RDKit molecule object.
     :type mol: rdkit.Chem.rdchem.Mol
+    :param include_H: Whether to include hydrogens before generating the SMILES string.
+    :type include_H: bool
     :return: SMILES string representing the molecule.
     :rtype: str
     """
+    if not include_H:
+        mol = Chem.RemoveHs(mol)
     return Chem.MolToSmiles(mol)
 
 
@@ -68,6 +74,27 @@ def inchi(mol: Mol) -> str:
     """
     molblock = Chem.rdmolfiles.MolToMolBlock(mol)
     return Chem.inchi.MolBlockToInchi(molblock)
+
+
+def hill_formula(mol: Mol) -> str:
+    """
+    Get the Hill formula of a molecule.
+
+    :param mol: RDKit molecule object.
+    :type mol: rdkit.Chem.rdchem.Mol
+    :return: Hill formula string representing the molecule.
+    :rtype: str
+    """
+    counts = Counter([a.GetSymbol().capitalize() for a in mol.GetAtoms()])
+
+    ordered = []
+    if "C" in counts:
+        ordered.append(("C", counts.pop("C")))
+    if "H" in counts:
+        ordered.append(("H", counts.pop("H")))
+    ordered.extend(sorted(counts.items(), key=lambda x: x[0]))
+
+    return "".join(s if n == 1 else f"{s}{n}" for s, n in ordered)
 
 
 def has_coordinates(mol: Mol) -> bool:
@@ -166,13 +193,13 @@ def has_branch(mol: Mol) -> bool:
     return any(atom.GetDegree() > 2 for atom in mol.GetAtoms())
 
 
-def has_double_bond(mol: Mol) -> bool:
+def has_alkene_bond(mol: Mol) -> bool:
     """
-    Check if a molecule contains any double bonds.
+    Check if a molecule contains any non-aromatic double bonds.
 
     :param mol: RDKit molecule object.
     :type mol: rdkit.Chem.rdchem.Mol
-    :return: True if the molecule contains double bonds, False otherwise.
+    :return: True if the molecule contains non-aromatic double bonds, False otherwise.
     :rtype: bool
     """
     return any(
@@ -181,3 +208,15 @@ def has_double_bond(mol: Mol) -> bool:
         else False
         for bond in mol.GetBonds()
     )
+
+
+def molecular_weight(mol: Mol) -> float:
+    """
+    Calculate the molecular weight of a molecule.
+
+    :param mol: RDKit molecule object.
+    :type mol: rdkit.Chem.rdchem.Mol
+    :return: Molecular weight of the molecule.
+    :rtype: float
+    """
+    return sum(mass(atom.GetAtomicNum()) for atom in mol.GetAtoms())

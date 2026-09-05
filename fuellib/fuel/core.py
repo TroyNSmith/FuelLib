@@ -1,3 +1,4 @@
+import re
 from functools import cached_property
 from pathlib import Path
 from typing import Literal
@@ -11,10 +12,10 @@ from jax import Array
 from scipy.optimize import curve_fit
 from unxt import AbstractQuantity, Quantity
 
-from ..constants import EPSILON_BY_KB_GAS, MW_GAS, SIGMA_GAS
 from ..gcm import GaniGCM
 from ..rd import mol
-from ..units import convert_temperature
+from ..utils.constants import EPSILON_BY_KB_GAS, MW_GAS, SIGMA_GAS
+from ..utils.units import convert_temperature
 from .correlation import mixing_rule, tee_epsilon, tee_sigma
 from .locator import DEFAULT_DATA_DIR
 
@@ -82,8 +83,7 @@ class Fuel:
     # Fuel / component properties
     name: str
     compounds: list[str]
-    formulas: list[str] | None = None
-    smiles: list[str] | None = None
+    smiles: list[str]
     pelephysics_keys: list[str] | None = None
 
     # GCM descriptions
@@ -92,7 +92,6 @@ class Fuel:
 
     # Critical properties of the mixture components
     _Y_0: Array  # Mass fractions of the compounds in the mixture
-    _MW: AbstractQuantity  # Molecular weights in kg/mol
     _Tc: AbstractQuantity  # Critical temperatures in K
     _Pc: AbstractQuantity  # Critical pressures in Pa
     _Vc: AbstractQuantity  # Critical volumes in m^3/mol
@@ -144,29 +143,31 @@ class Fuel:
 
     def _init_gc_data(self, csv_path: str | Path) -> None:
         """
-        Load the gcxgc from a CSV file.
+        Load the gcxgc data from a CSV file.
 
-        :param gcm_name: Name of the GCM to load.
-        :type gcm_name: str
+        :param csv_path: Path to the CSV file containing the gcxgc data.
+        :type csv_path: str or Path
+        :raises KeyError: If the CSV file does not contain any compounds or SMILES strings.
         """
         df = pd.read_csv(csv_path, skipinitialspace=True)
-        self.compounds = [c.strip() for c in df["Compound"].tolist()]
+        if not "Compound" in df.columns:
+            raise KeyError("No compounds found in the CSV file.")
 
-        if "Formula" in df.columns:
-            self.formulas = [
-                f.strip() if pd.notna(f) else "" for f in df["Formula"].tolist()
-            ]
+        if not "SMILES" in df.columns:
+            raise KeyError("No SMILES strings found in the CSV file.")
+
+        if not "Weight %" in df.columns:
+            raise KeyError("No weight percentages found in the CSV file.")
+
+        self.compounds = [c.strip() for c in df["Compound"].tolist()]
+        self.smiles = [s.strip() for s in df["SMILES"].tolist()]
+        _wts = df["Weight %"].to_numpy(dtype=float)
+        self._Y_0 = jnp.array(_wts / np.sum(_wts), dtype=float)
+
         if "PelePhysics Key" in df.columns:
             self.pelephysics_keys = [
                 k.strip() if pd.notna(k) else "" for k in df["PelePhysics Key"].tolist()
             ]
-        if "SMILES" in df.columns:
-            self.smiles = [
-                s.strip() if pd.notna(s) else "" for s in df["SMILES"].tolist()
-            ]
-
-        _wts = df["Weight %"].to_numpy(dtype=float)
-        self._Y_0 = jnp.array(_wts / np.sum(_wts), dtype=float)
 
     def _init_gani_decomp(self, csv_path: str | Path) -> None:
         """
@@ -196,7 +197,6 @@ class Fuel:
         """Initialize critical properties from group contribution method(s)."""
 
         # Group contribution critical properties
-        self._MW = gani.MW(self, unit="kg/mol")
         self._Tc = gani.Tc(self, unit="K")
         self._Pc = gani.Pc(self, unit="Pa")
         self._Vc = gani.Vc(self, unit="m^3/mol")
@@ -231,6 +231,34 @@ class Fuel:
         :rtype: int
         """
         return self.gani_decomp.shape[1]
+
+    @property
+    def formulas(self) -> list[str]:
+        """
+        Return the chemical formulas of each component in the mixture.
+
+        :return: Chemical formulas of each component.
+        :rtype: list[str]
+        """
+        if self.smiles and all(s.strip() != "" for s in self.smiles):
+            return [mol.hill_formula(mol.from_smiles(s)) for s in self.smiles]
+
+        raise NotImplementedError(
+            "formulas property is only available when SMILES strings are provided for the compounds."
+        )
+
+    @cached_property
+    def MW(self) -> AbstractQuantity:
+        """
+        Return the molecular weights of each component in the mixture.
+
+        :return: Molecular weights of each component.
+        :rtype: AbstractQuantity
+        """
+        masses = jnp.array(
+            [mol.molecular_weight(mol.from_smiles(s)) for s in self.smiles]
+        )
+        return Quantity(masses, "g/mol")
 
     @cached_property
     def num_carbons(self) -> npt.NDArray[np.int_]:
@@ -338,7 +366,7 @@ class Fuel:
         """
         if self.smiles and all(s.strip() != "" for s in self.smiles):
             return np.array(
-                [mol.has_double_bond(mol.from_smiles(s)) for s in self.smiles]
+                [mol.has_alkene_bond(mol.from_smiles(s)) for s in self.smiles]
             )
 
         raise NotImplementedError(
@@ -378,7 +406,7 @@ class Fuel:
     @property
     def Lv_stp(self) -> AbstractQuantity:
         """Return the latent heat of vaporization at STP for each compound in the mixture."""
-        return self._Hv_stp / self._MW
+        return self._Hv_stp / self.MW
 
     @property
     def sigma(self) -> AbstractQuantity:
@@ -1125,27 +1153,6 @@ class Fuel:
             raise ValueError("Y_0 must sum to 1.00 +/- 0.05.")
 
         self._Y_0 = value
-
-    @property
-    def MW(self) -> AbstractQuantity:
-        """
-        Return the molecular weights of the compounds in the mixture.
-
-        :return: Molecular weights of the compounds.
-        :rtype: AbstractQuantity
-        """
-        return self._MW
-
-    @MW.setter
-    def MW(self, value: AbstractQuantity) -> None:
-        """
-        Set the molecular weights of the compounds in the mixture.
-
-        :param value: Molecular weights of the compounds.
-        :type value: AbstractQuantity
-        """
-        _check_valid_property(value, self.num_compounds, "MW")
-        self._MW = value.to("kg/mol")
 
     @property
     def Tc(self) -> AbstractQuantity:
