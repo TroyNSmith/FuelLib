@@ -1,12 +1,11 @@
 import os
 import unittest
 
-import astropy.units as u
 import numpy as np
 import pandas as pd
 from get_pred_and_data import get_pred_and_data
 
-from fuellib.units import convert_temperature
+import fuellib as fl
 
 # Locate the tests baseline directory
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -51,9 +50,7 @@ class CompTestCase(unittest.TestCase):
             # Extract unit from column
             base_temp_unit = str(df_base["Temperature"].iloc[0])
             base_temp_data = df_base.Temperature.iloc[1:].to_numpy(dtype=float)
-            base_temp_data = convert_temperature(
-                u.Quantity(base_temp_data, base_temp_unit), "K"
-            )
+            base_temp_data = fl.units.Quantity(base_temp_data, base_temp_unit).to("K")
 
             print(f"\n{fuel_name}:")
             for prop in prop_names:
@@ -72,7 +69,9 @@ class CompTestCase(unittest.TestCase):
                     base_prop_data = df_base[prop].iloc[1:].to_numpy(dtype=float)
 
                     valid_idxs = ~np.isnan(base_prop_data)
-                    base_props = u.Quantity(base_prop_data[valid_idxs], base_prop_unit)
+                    base_props = fl.units.Quantity(
+                        base_prop_data[valid_idxs], base_prop_unit
+                    )
                     base_temps = base_temp_data[valid_idxs]
 
                     self.assertTrue(

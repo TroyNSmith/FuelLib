@@ -2,12 +2,10 @@ import argparse
 import os
 from typing import Literal
 
-import astropy.units as u
 import numpy as np
 import pandas as pd
 
 import fuellib as fl
-from fuellib import units as flu
 
 # Default data directory - use fuellib's embedded data
 FUELDATA_DIR = fl.get_fueldata_dir()
@@ -30,15 +28,15 @@ For detailed options, run:
 
 def create_data_dict(
     units: Literal["cgs", "mks"],
-    T: u.Quantity,
-    T_crit: u.Quantity,
-    mu: u.Quantity,
-    surface_tension: u.Quantity,
-    Lv: u.Quantity,
-    pv: u.Quantity,
-    rho: u.Quantity,
-    Cl: u.Quantity,
-    thermal_conductivity: u.Quantity,
+    T: fl.units.Quantity,
+    T_crit: fl.units.Quantity,
+    mu: fl.units.Quantity,
+    surface_tension: fl.units.Quantity,
+    Lv: fl.units.Quantity,
+    pv: fl.units.Quantity,
+    rho: fl.units.Quantity,
+    Cl: fl.units.Quantity,
+    thermal_conductivity: fl.units.Quantity,
 ):
     """
     Create a data dictionary with converted units and appropriate labels.
@@ -109,13 +107,13 @@ def export_converge(
     :type units: str, optional (default: "mks")
 
     :param temp_min: Minimum temperature for the property calculations.
-    :type temp_min: u.Quantity, optional (default: 0 * u.K)
+    :type temp_min: fl.units.Quantity, optional (default: 0 * fl.units.K)
 
     :param temp_max: Maximum temperature for the property calculations.
-    :type temp_max: u.Quantity, optional (default: 1000 * u.K)
+    :type temp_max: fl.units.Quantity, optional (default: 1000 * fl.units.K)
 
     :param temp_step: Step size for temperature.
-    :type temp_step: u.Quantity, optional (default: 10 * u.K)
+    :type temp_step: fl.units.Quantity, optional (default: 10 * fl.units.K)
 
     :param temp_unit: Unit of temperature (e.g., "K" for Kelvin).
     :type temp_unit: str, optional (default: "K")
@@ -130,9 +128,9 @@ def export_converge(
     :raises TypeError: If fuel object is not a FuelLib fuel instance
     """
     # Convert temperatures to Quantities
-    _temp_min = u.Quantity(temp_min, temp_unit)
-    _temp_max = u.Quantity(temp_max, temp_unit)
-    _temp_step = u.Quantity(temp_step, temp_unit)
+    _temp_min = fl.units.Quantity(temp_min, temp_unit)
+    _temp_max = fl.units.Quantity(temp_max, temp_unit)
+    _temp_step = fl.units.Quantity(temp_step, temp_unit)
 
     if path is None:
         path = os.getcwd()
@@ -144,7 +142,7 @@ def export_converge(
     if units.lower() not in ["mks", "cgs"]:
         raise ValueError(f"Units must be 'mks' or 'cgs', got '{units}'")
 
-    absolute_zero = flu.convert_temperature(u.Quantity(0.0, "K"), temp_unit)
+    absolute_zero = fl.units.Quantity(0.0, "K").to(temp_unit)
 
     if _temp_min < absolute_zero:
         raise ValueError(
@@ -173,24 +171,28 @@ def export_converge(
         components = fuel.compounds
 
     # Convert temperatures to Kelvin
-    _temp_min = flu.convert_temperature(_temp_min, "K")
-    _temp_max = flu.convert_temperature(_temp_max, "K")
-    _temp_step = flu.convert_temperature(_temp_step, "K")
+    _temp_min = fl.units._temp_min.to("K")
+    _temp_max = fl.units._temp_max.to("K")
+    _temp_step = fl.units._temp_step.to("K")
 
-    def nearest_temp(x: u.Quantity, base: u.Quantity = _temp_step) -> u.Quantity:
+    def nearest_temp(
+        x: fl.units.Quantity, base: fl.units.Quantity = _temp_step
+    ) -> fl.units.Quantity:
         """
         Round to nearest multiple of temp_step.
 
         :param x: Temperature value to round.
-        :type x: u.Quantity
+        :type x: fl.units.Quantity
         :param base: Base value for rounding (temp_step).
-        :type base: u.Quantity
+        :type base: fl.units.Quantity
         :return: Rounded temperature.
-        :rtype: u.Quantity
+        :rtype: fl.units.Quantity
         """
         return base * np.round(x / base)
 
-    def nearest_floor(array: u.Quantity, value: u.Quantity) -> u.Quantity:
+    def nearest_floor(
+        array: fl.units.Quantity, value: fl.units.Quantity
+    ) -> fl.units.Quantity:
         """
         Find the largest value in the array that is less than or equal to the given value.
 
@@ -209,7 +211,9 @@ def export_converge(
                 f"No temperature in the array is less than or equal to the critical point {value}. Choose a lower temp_min"
             )
 
-    def nearest_ceil(array: u.Quantity, value: u.Quantity) -> u.Quantity:
+    def nearest_ceil(
+        array: fl.units.Quantity, value: fl.units.Quantity
+    ) -> fl.units.Quantity:
         """
         Find the smallest value in the array that is greater than or equal to the given value.
 
@@ -229,8 +233,11 @@ def export_converge(
             )
 
     def validate_temperature_range(
-        T_array: u.Quantity, T_freeze: u.Quantity, T_crit: u.Quantity, is_mixture=True
-    ) -> tuple[u.Quantity, u.Quantity, u.Quantity]:
+        T_array: fl.units.Quantity,
+        T_freeze: fl.units.Quantity,
+        T_crit: fl.units.Quantity,
+        is_mixture=True,
+    ) -> tuple[fl.units.Quantity, fl.units.Quantity, fl.units.Quantity]:
         """
         Validate and adjust temperature range based on freezing and critical temperatures.
 
@@ -287,15 +294,15 @@ def export_converge(
         return T_min_allowed, T_max_allowed, adjusted_T
 
     def calculate_mixture_properties(
-        T_array: u.Quantity, fuel: fl.fuel
+        T_array: fl.units.Quantity, fuel: fl.fuel
     ) -> tuple[
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
     ]:
         """
         Calculate mixture properties for a range of temperatures.
@@ -308,13 +315,13 @@ def export_converge(
         :rtype: tuple
         """
         # Initialize property arrays
-        mu = u.Quantity(np.zeros(len(T_array)), "Pa*s")
-        surface_tension = u.Quantity(np.zeros(len(T_array)), "N/m")
-        Lv = u.Quantity(np.zeros(len(T_array)), "J/kg")
-        pv = u.Quantity(np.zeros(len(T_array)), "Pa")
-        rho = u.Quantity(np.zeros(len(T_array)), "kg/m^3")
-        Cl = u.Quantity(np.zeros(len(T_array)), "J/(kg*K)")
-        thermal_conductivity = u.Quantity(np.zeros(len(T_array)), "W/(m*K)")
+        mu = fl.units.Quantity(np.zeros(len(T_array)), "Pa*s")
+        surface_tension = fl.units.Quantity(np.zeros(len(T_array)), "N/m")
+        Lv = fl.units.Quantity(np.zeros(len(T_array)), "J/kg")
+        pv = fl.units.Quantity(np.zeros(len(T_array)), "Pa")
+        rho = fl.units.Quantity(np.zeros(len(T_array)), "kg/m^3")
+        Cl = fl.units.Quantity(np.zeros(len(T_array)), "J/(kg*K)")
+        thermal_conductivity = fl.units.Quantity(np.zeros(len(T_array)), "W/(m*K)")
 
         for k, Temp in enumerate(T_array):
             Y_li = fuel.Y_0
@@ -336,36 +343,36 @@ def export_converge(
         return mu, surface_tension, Lv, pv, rho, Cl, thermal_conductivity
 
     def calculate_component_properties(
-        T_array: u.Quantity, fuel: fl.fuel, comp_idx: int
+        T_array: fl.units.Quantity, fuel: fl.fuel, comp_idx: int
     ) -> tuple[
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
-        u.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
+        fl.units.Quantity,
     ]:
         """
         Calculate individual component properties for a range of temperatures.
 
         :param T_array: Array of temperature values.
-        :type T_array: u.Quantity
+        :type T_array: fl.units.Quantity
         :param fuel: Fuel object.
         :type fuel: fl.fuel
         :param comp_idx: Index of the component.
         :type comp_idx: int
         :return: Tuple of property arrays (mu, surface_tension, Lv, pv, rho, Cl, thermal_conductivity) with units.
-        :rtype: tuple[u.Quantity, u.Quantity, u.Quantity, u.Quantity, u.Quantity, u.Quantity, u.Quantity]
+        :rtype: tuple[fl.units.Quantity, fl.units.Quantity, fl.units.Quantity, fl.units.Quantity, fl.units.Quantity, fl.units.Quantity, fl.units.Quantity]
         """
         # Initialize property arrays
-        mu = u.Quantity(np.zeros(len(T_array)), "Pa*s")
-        surface_tension = u.Quantity(np.zeros(len(T_array)), "N/m")
-        Lv = u.Quantity(np.zeros(len(T_array)), "J/kg")
-        pv = u.Quantity(np.zeros(len(T_array)), "Pa")
-        rho = u.Quantity(np.zeros(len(T_array)), "kg/m^3")
-        Cl = u.Quantity(np.zeros(len(T_array)), "J/kg/K")
-        thermal_conductivity = u.Quantity(np.zeros(len(T_array)), "W/m/K")
+        mu = fl.units.Quantity(np.zeros(len(T_array)), "Pa*s")
+        surface_tension = fl.units.Quantity(np.zeros(len(T_array)), "N/m")
+        Lv = fl.units.Quantity(np.zeros(len(T_array)), "J/kg")
+        pv = fl.units.Quantity(np.zeros(len(T_array)), "Pa")
+        rho = fl.units.Quantity(np.zeros(len(T_array)), "kg/m^3")
+        Cl = fl.units.Quantity(np.zeros(len(T_array)), "J/kg/K")
+        thermal_conductivity = fl.units.Quantity(np.zeros(len(T_array)), "W/m/K")
 
         for k, Temp in enumerate(T_array):
             rho[k] = fuel.density(Temp, comp_idx=comp_idx)  # kg/m^3
@@ -406,7 +413,7 @@ def export_converge(
         # Vector of evenly spaced temperatures
         nT = int((_temp_max - _temp_min) / _temp_step) + 1
         _T = np.linspace(_temp_min, _temp_max, nT)
-        T = u.Quantity(_T, temp_unit)
+        T = fl.units.Quantity(_T, temp_unit)
 
         # Estimate freezing point and critical temp of mixture
         T_freeze = fl.utility.mixing_rule(fuel.Tm, fuel.Y2X(fuel.Y_0))
@@ -437,7 +444,7 @@ def export_converge(
                 nearest_temp(T_crit),
                 nearest_temp(T_crit) + _temp_step,
             ]
-            maxtemps = u.Quantity(_maxtemps, temp_unit)
+            maxtemps = fl.units.Quantity(_maxtemps, temp_unit)
             T_nearest_floor = nearest_floor(maxtemps, T_crit)
 
             nT = int((T_nearest_floor - T_min_allowed) / _temp_step) + 1

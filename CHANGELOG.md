@@ -14,7 +14,7 @@ used to parse and validate this file's entries against that format.
 - Lefthook pre-commit suite (`lefthook.yaml`) running `fmt` → `lint` → `types` → `test` → `check-clean` on commit. The `import-linter` check is not yet wired into pre-commit since the layering contract (`fuellib.fuel` / `fuellib.gcm` / `fuellib.comp`) will fail broadly until the codebase is reorganized to match it; run it manually via `pixi run imports` in the meantime.
 - Coverage reporting via `pytest-cov`, with a temporary `fail_under = 20` threshold, to be raised as test coverage improves.
 - `astropy` (`>=8.0.1`) dependency for unit-aware physical property calculations.
-- New `fuellib/units.py` module built on `astropy.units`, defining additional unit strings not provided by astropy (`atm`, `dyne/cm^2`, `cgs`, `mks`, `Fahrenheit`, `dimensionless`) and helper functions `convert_temperature()` and `ustrip()`.
+- New `fuellib/units.py` module built on `astropy.units`, re-exporting the entire `astropy.units` API (accessible as `fl.units`) alongside additional unit strings not provided by astropy (`atm`, `dyne/cm^2`, `cgs`, `mks`, `Fahrenheit`, `dimensionless`), a helper function `ustrip()`, and globally-enabled temperature equivalencies so `Quantity.to()` converts directly between temperature scales (`K`, `Celsius`, `Fahrenheit`, ...).
 - `-tu`/`--temp_unit` option (and `temp_unit` parameter on `export_converge()`) for `fl-export-converge`, allowing `temp_min`/`temp_max`/`temp_step` to be specified in `K`, `Celsius`, or `Fahrenheit`.
 
 ### Changed

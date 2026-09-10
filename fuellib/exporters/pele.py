@@ -8,7 +8,6 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Literal
 
-import astropy.units as u
 import pandas as pd
 from scipy import stats as st
 
@@ -436,7 +435,7 @@ def export_pele(
             prop_names.append("psat")
 
         # Calculate density at 298.15 K
-        ref_T = u.Quantity(298.15, "K")
+        ref_T = fl.units.Quantity(298.15, "K")
         rho_unit = "g/cm^3" if units.lower() == "cgs" else "kg/m^3"
         if export_mix:
             rho = fuel.mixture_density(fuel.Y_0, ref_T, unit=rho_unit)

@@ -7,9 +7,9 @@ from typing import Literal
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from astropy import units as u
 from scipy.optimize import curve_fit
 
+from . import units
 from ._data_locator import (
     get_fueldata_decomp_dir,
     get_fueldata_dir,
@@ -18,7 +18,7 @@ from ._data_locator import (
     get_gcmtable_dir,
     get_metadata_decomp_name,
 )
-from .units import convert_temperature, ustrip
+from .units import ustrip
 from .utility import mixing_rule
 
 type FloatArrayLike = npt.NDArray[np.float64] | Sequence[float]
@@ -71,49 +71,49 @@ class fuel:
     num_groups: int
 
     #: Molecular weights in kg/mol. Shape: (num_compounds,)
-    MW: u.Quantity
+    MW: units.Quantity
 
     #: Critical temperatures in K. Shape: (num_compounds,)
-    Tc: u.Quantity
+    Tc: units.Quantity
 
     #: Critical pressures in Pa. Shape: (num_compounds,)
-    Pc: u.Quantity
+    Pc: units.Quantity
 
     #: Critical volumes in m³/mol. Shape: (num_compounds,)
-    Vc: u.Quantity
+    Vc: units.Quantity
 
     #: Boiling temperatures in K. Shape: (num_compounds,)
-    Tb: u.Quantity
+    Tb: units.Quantity
 
     #: Melting temperatures in K. Shape: (num_compounds,)
-    Tm: u.Quantity
+    Tm: units.Quantity
 
     #: Enthalpy of formation in J/mol. Shape: (num_compounds,)
-    Hf: u.Quantity
+    Hf: units.Quantity
 
     #: Gibbs free energy in J/mol. Shape: (num_compounds,)
-    Gf: u.Quantity
+    Gf: units.Quantity
 
     #: Enthalpy of vaporization at 298 K in J/mol. Shape: (num_compounds,)
-    Hv_stp: u.Quantity
+    Hv_stp: units.Quantity
 
     #: Latent heat of vaporization at 298 K in J/kg. Shape: (num_compounds,)
-    Lv_stp: u.Quantity
+    Lv_stp: units.Quantity
 
     #: Molar specific heat at 298 K in J/mol/K. Shape: (num_compounds,)
-    Cp_stp: u.Quantity
+    Cp_stp: units.Quantity
 
     #: Molar liquid volume at 298 K in m³/mol. Shape: (num_comp ounds,)
-    Vm_stp: u.Quantity
+    Vm_stp: units.Quantity
 
     #: Acentric factors. Shape: (num_compounds,)
-    omega: u.Quantity
+    omega: units.Quantity
 
     #: Lennard-Jones collision diameters in m. Shape: (num_compounds,)
-    sigma: u.Quantity
+    sigma: units.Quantity
 
     #: Lennard-Jones well depths in K. Shape: (num_compounds,)
-    epsilonByKB: u.Quantity
+    epsilonByKB: units.Quantity
 
     #: Hydrocarbon types ("n-alkane", "iso-alkane", "cyclo-alkane", "aromatic", "alkene")
     hc_type: npt.NDArray[np.str_]
@@ -329,77 +329,77 @@ class fuel:
         # --- Compute critical properties at standard temp (num_compounds,)
         # Molecular weights
         _MW = np.matmul(self.Nij, mwk)  # g/mol
-        self.MW = u.Quantity(_MW, "g/mol").to("kg/mol")
+        self.MW = units.Quantity(_MW, "g/mol").to("kg/mol")
 
         # T_c (critical temperature)
         _Tc = 181.128 * np.log(np.matmul(self.Nij, Tck))  # K
-        self.Tc = u.Quantity(_Tc, "K")
+        self.Tc = units.Quantity(_Tc, "K")
 
         # p_c (critical pressure)
         _Pc = 1.3705 + (np.matmul(self.Nij, Pck) + 0.10022) ** (-2)  # bar
-        self.Pc = u.Quantity(_Pc, "bar").to("Pa")
+        self.Pc = units.Quantity(_Pc, "bar").to("Pa")
 
         # V_c (critical volume)
         _Vc = -0.00435 + (np.matmul(self.Nij, Vck))  # m^3/kmol
-        self.Vc = u.Quantity(_Vc, "m^3/kmol").to("m^3/mol")
+        self.Vc = units.Quantity(_Vc, "m^3/kmol").to("m^3/mol")
 
         # T_b (boiling temperature)
         _Tb = 204.359 * np.log(np.matmul(self.Nij, Tbk))  # K
-        self.Tb = u.Quantity(_Tb, "K")
+        self.Tb = units.Quantity(_Tb, "K")
 
         # T_m (melting temperature)
         _Tm = 102.425 * np.log(np.matmul(self.Nij, Tmk))  # K
-        self.Tm = u.Quantity(_Tm, "K")
+        self.Tm = units.Quantity(_Tm, "K")
 
         # H_f (enthalpy of formation)
         _Hf = 10.835 + np.matmul(self.Nij, hfk)  # kJ/mol
-        self.Hf = u.Quantity(_Hf, "kJ/mol").to("J/mol")
+        self.Hf = units.Quantity(_Hf, "kJ/mol").to("J/mol")
 
         # G_f (Gibbs free energy)
         _Gf = -14.828 + np.matmul(self.Nij, gfk)  # kJ/mol
-        self.Gf = u.Quantity(_Gf, "kJ/mol").to("J/mol")
+        self.Gf = units.Quantity(_Gf, "kJ/mol").to("J/mol")
 
         # H_v,stp (enthalpy of vaporization at 298 K)
         _Hv_stp = 6.829 + (np.matmul(self.Nij, hvk))  # kJ/mol
-        self.Hv_stp = u.Quantity(_Hv_stp, "kJ/mol").to("J/mol")
+        self.Hv_stp = units.Quantity(_Hv_stp, "kJ/mol").to("J/mol")
 
         # omega (accentric factor)
         _omega = 0.4085 * np.log(np.matmul(self.Nij, wk) + 1.1507) ** (1.0 / 0.5050)
-        self.omega = u.Quantity(_omega, "dimensionless")
+        self.omega = units.Quantity(_omega, "dimensionless")
 
         # V_m (molar liquid volume at 298 K)
         _Vm_stp = 0.01211 + np.matmul(self.Nij, Vmk)  # m^3/kmol
-        self.Vm_stp = u.Quantity(_Vm_stp, "m^3/kmol").to("m^3/mol")
+        self.Vm_stp = units.Quantity(_Vm_stp, "m^3/kmol").to("m^3/mol")
 
         # C_p,stp (molar specific heat at 298 K)
         _Cp_stp = np.matmul(self.Nij, cpak) - 19.7779  # J/mol/K
-        self.Cp_stp = u.Quantity(_Cp_stp, "J/(mol*K)")
+        self.Cp_stp = units.Quantity(_Cp_stp, "J/(mol*K)")
 
         # Temperature corrections for C_p
         _Cp_B = np.matmul(self.Nij, cpbk)
-        self.Cp_B = u.Quantity(_Cp_B, "J/(mol*K)")
+        self.Cp_B = units.Quantity(_Cp_B, "J/(mol*K)")
 
         _Cp_C = np.matmul(self.Nij, cpck)
-        self.Cp_C = u.Quantity(_Cp_C, "J/(mol*K)")
+        self.Cp_C = units.Quantity(_Cp_C, "J/(mol*K)")
 
         # L_v,stp (latent heat of vaporization at 298 K)
         self.Lv_stp = (self.Hv_stp / self.MW).to("J/kg")  # J/kg
 
         # Lennard-Jones parameters for diffusion calculations (Tee et al. 1966)
         _epsilonByKB = (0.7915 + 0.1693 * self.omega) * self.Tc  # K
-        self.epsilonByKB = u.Quantity(_epsilonByKB, "K")
+        self.epsilonByKB = units.Quantity(_epsilonByKB, "K")
 
         _sigma = (2.3551 - 0.0874 * self.omega) * (self.Tc / self.Pc.to("atm")) ** (
             1.0 / 3
         )  # Angstroms
-        self.sigma = u.Quantity(ustrip(_sigma), "Angstrom").to("m")
+        self.sigma = units.Quantity(ustrip(_sigma), "Angstrom").to("m")
 
     # -------------------------------------------------------------------------
     # Member functions
     # -------------------------------------------------------------------------
     def mean_molecular_weight(
         self, Yi: FloatArrayLike, *, unit: str = "kg/mol"
-    ) -> u.Quantity:
+    ) -> units.Quantity:
         """
         Calculate the mean molecular weight of the mixture.
 
@@ -408,12 +408,12 @@ class fuel:
         :param unit: Unit of the mean molecular weight (e.g., "kg/mol").
         :type unit: str
         :return: Mean molecular weight of the mixture in the specified unit.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
         if np.sum(Yi) != 0:
             Mbar = 1 / np.sum(Yi / self.MW)  # mean molar weight of the mixture
         else:
-            Mbar = u.Quantity(0.0, unit)
+            Mbar = units.Quantity(0.0, unit)
 
         return Mbar.to(unit)
 
@@ -496,29 +496,29 @@ class fuel:
         return np.array(Xi, dtype=np.float64)
 
     def density(
-        self, T: u.Quantity, *, unit: str = "kg/m^3", comp_idx: int | None = None
-    ) -> u.Quantity:
+        self, T: units.Quantity, *, unit: str = "kg/m^3", comp_idx: int | None = None
+    ) -> units.Quantity:
         """
         Calculate the density of each component at temperature T.
 
         :param T: Temperature to calculate the density at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit of the returned density.
         :type unit: str, optional
         :param comp_idx: Index of compound to calculate property for.
         :type comp_idx: int, optional
         :return: Density of each compound in `unit`.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
-        T = convert_temperature(T, "K")
+        T = T.to("K")
         rho = self.MW / self.molar_liquid_vol(T)
         if comp_idx is not None:
             rho = rho[comp_idx]
         return rho.to(unit)
 
     def viscosity_kinematic(
-        self, T: u.Quantity, *, unit: str = "m^2/s", comp_idx: int | None = None
-    ) -> u.Quantity:
+        self, T: units.Quantity, *, unit: str = "m^2/s", comp_idx: int | None = None
+    ) -> units.Quantity:
         """
         Calculate the viscosity using Dutt's equation.
 
@@ -526,22 +526,22 @@ class fuel:
         :meta private: The equation predicts viscosity in mm^2/s and is converted to SI units.
 
         :param T: Temperature to calculate the kinematic viscosity at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit of the returned kinematic viscosity.
         :type unit: str, optional
         :param comp_idx: Index of compound to calculate property for.
         :type comp_idx: int, optional
         :return: Kinematic viscosity of each component in `unit`.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
-        T = convert_temperature(T, "Celsius")
-        Tb = convert_temperature(self.Tb, "Celsius")
+        T = T.to("Celsius")
+        Tb = self.Tb.to("Celsius")
 
         # RHS of Dutt's equation (4.23) in Viscosity of Liquids (returns mm^2/s)
         # NOTE: Stripping units in the calculation then reattaching after exponential
         num = 442.78 + 1.6452 * ustrip(Tb)
         denom = ustrip(T) + 239 - 0.19 * ustrip(Tb)
-        nu_i = u.Quantity(np.exp(-3.0171 + num / denom), "mm^2/s")
+        nu_i = units.Quantity(np.exp(-3.0171 + num / denom), "mm^2/s")
 
         if comp_idx is not None:
             nu_i = nu_i[comp_idx]
@@ -549,21 +549,21 @@ class fuel:
         return nu_i.to(unit)
 
     def viscosity_dynamic(
-        self, T: u.Quantity, *, unit: str = "Pa*s", comp_idx: int | None = None
-    ) -> u.Quantity:
+        self, T: units.Quantity, *, unit: str = "Pa*s", comp_idx: int | None = None
+    ) -> units.Quantity:
         """
         Calculate liquid dynamic viscosity based on droplet temperature and density.
 
         :meta private: Uses Dutt's equation (4.23) for kinematic viscosity, combined with density.
 
         :param T: Temperature to calculate the dynamic viscosity at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit of the returned dynamic viscosity.
         :type unit: str, optional
         :param comp_idx: Index of compound to calculate property for.
         :type comp_idx: int, optional
         :return: Dynamic viscosity in `unit`.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
         nu_i = self.viscosity_kinematic(T, comp_idx=comp_idx)  # m^2/s
         rho_i = self.density(T, comp_idx=comp_idx)  # kg/m^3
@@ -571,19 +571,19 @@ class fuel:
         return mu_i.to(unit)
 
     def Cp(
-        self, T: u.Quantity, *, unit: str = "J/(mol*K)", comp_idx: int | None = None
-    ) -> u.Quantity:
+        self, T: units.Quantity, *, unit: str = "J/(mol*K)", comp_idx: int | None = None
+    ) -> units.Quantity:
         """
         Compute molar specific heat capacity at a given temperature.
 
         :param T: Temperature to calculate the molar specific heat capacity at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit of the returned molar specific heat capacity.
         :type unit: str, optional
         :param comp_idx: Index of compound to calculate property for.
         :type comp_idx: int, optional
         :return: Molar specific heat capacity in `unit`.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
         # NOTE: Units are stripped for the calculation and reattached after the computation
         theta = (ustrip(T.to("K")) - 298) / 700
@@ -593,27 +593,27 @@ class fuel:
         Cp_C = ustrip(self.Cp_C.to(unit))
 
         cp = Cp_stp + Cp_B * theta + Cp_C * theta**2
-        cp = u.Quantity(cp, "J/(mol*K)")
+        cp = units.Quantity(cp, "J/(mol*K)")
 
         if comp_idx is not None:
             cp = cp[comp_idx]
 
-        return u.Quantity(cp, unit)
+        return units.Quantity(cp, unit)
 
     def Cl(
-        self, T: u.Quantity, *, unit: str = "J/(kg*K)", comp_idx: int | None = None
-    ) -> u.Quantity:
+        self, T: units.Quantity, *, unit: str = "J/(kg*K)", comp_idx: int | None = None
+    ) -> units.Quantity:
         """
         Compute liquid mass specific heat capacity at a given temperature.
 
         :param T: Temperature to calculate the liquid mass specific heat capacity at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit of the returned mass specific heat capacity.
         :type unit: str, optional
         :param comp_idx: Index of compound to calculate property for.
         :type comp_idx: int, optional
         :return: Mass specific heat capacity in `unit`.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
         Cl = self.Cp(T) / self.MW
 
@@ -624,12 +624,12 @@ class fuel:
 
     def psat(
         self,
-        T: u.Quantity,
+        T: units.Quantity,
         *,
         unit: str = "Pa",
         comp_idx: int | None = None,
         correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
-    ) -> u.Quantity:
+    ) -> units.Quantity:
         """
         Compute saturated vapor pressure at a given temperature.
 
@@ -644,7 +644,7 @@ class fuel:
         :param correlation: Correlation method ("Ambrose-Walton" or "Lee-Kesler").
         :type correlation: str, optional
         :return: Saturated vapor pressure in `unit`.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
         # NOTE: Units are stripped for the calculation and reattached after the computation
         Tr = ustrip(T.to("K") / self.Tc)
@@ -687,7 +687,7 @@ class fuel:
         else:
             raise ValueError(f"Unrecognized correlation method: {correlation}")
 
-        psat = u.Quantity(Pc * rhs, "Pa")
+        psat = units.Quantity(Pc * rhs, "Pa")
 
         if comp_idx is not None:
             psat = psat[comp_idx]
@@ -696,7 +696,7 @@ class fuel:
 
     def psat_antoine_coeffs(
         self,
-        Tvals: u.Quantity | None = None,
+        Tvals: units.Quantity | None = None,
         *,
         unit: str = "mks",
         correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
@@ -723,7 +723,7 @@ class fuel:
         if Tvals is None:
             print("Tvals not specified, using [273.15, Tb_i] for each compound.")
             # Initialize as zeros for now, calculated for each compound later
-            T = np.zeros(20) * u.K
+            T = np.zeros(20) * units.K
         elif len(Tvals) == 2:
             T = np.linspace(Tvals[0], Tvals[1], 20)
         elif len(Tvals) > 2:
@@ -731,7 +731,7 @@ class fuel:
         else:
             raise ValueError("Tvals must be None, length 2, or length > 2.")
 
-        T = convert_temperature(T, "K")
+        T = T.to("K")
         Tb = ustrip(self.Tb.to("K"))
 
         # Antoine equation log10(p) = A - B/(C + T)
@@ -740,7 +740,7 @@ class fuel:
             return A - B / (T + C)
 
         # Determine conversion factor for pressure in MKS, CGS, bar, or atm
-        D = ustrip((1 * u.Pa).to(unit))
+        D = ustrip((1 * units.Pa).to(unit))
 
         # Fit Antoine coefficients for each compound
         A = np.zeros(self.num_compounds)
@@ -749,7 +749,7 @@ class fuel:
         for i in range(self.num_compounds):
             # Update T if not specified
             if Tvals is None:
-                T = np.linspace(273.15, Tb[i], 20) * u.K
+                T = np.linspace(273.15, Tb[i], 20) * units.K
             Pvals = np.zeros(len(T))
             for k in range(len(T)):
                 Pval = 1 / D * self.psat(T[k], correlation=correlation)[i]
@@ -762,22 +762,22 @@ class fuel:
         return A, B, C, np.repeat(D, self.num_compounds)
 
     def molar_liquid_vol(
-        self, T: u.Quantity, *, unit: str = "m^3/mol", comp_idx: int | None = None
-    ) -> u.Quantity:
+        self, T: units.Quantity, *, unit: str = "m^3/mol", comp_idx: int | None = None
+    ) -> units.Quantity:
         """
         Compute molar liquid volume with temperature correction.
 
         :param T: Temperature to evaluate the molar liquid volume at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit to return the molar liquid volume in.
         :type unit: str, optional
         :param comp_idx: Index of compound to calculate property for.
         :type comp_idx: int, optional
         :return: Molar liquid volume in specified unit.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
 
-        Tstp = 298.0 * u.Kelvin
+        Tstp = 298.0 * units.Kelvin
 
         Tc = self.Tc
         omega = self.omega
@@ -796,23 +796,23 @@ class fuel:
         return Vmi.to(unit)
 
     def latent_heat_vaporization(
-        self, T: u.Quantity, *, unit: str = "J/kg", comp_idx: int | None = None
-    ) -> u.Quantity:
+        self, T: units.Quantity, *, unit: str = "J/kg", comp_idx: int | None = None
+    ) -> units.Quantity:
         """
         Calculate latent heat of vaporization adjusted for temperature.
 
         :param T: Temperature to evaluate latent heat of vaporization at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit to return the latent heat of vaporization in.
         :type unit: str, optional
         :param comp_idx: Index of compound to calculate property for.
         :type comp_idx: int, optional
         :return: Latent heat of vaporization in the specified unit.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
-        T = convert_temperature(T, "K")
-        Tc = convert_temperature(self.Tc, "K")
-        Tb = convert_temperature(self.Tb, "K")
+        T = T.to("K")
+        Tc = self.Tc.to("K")
+        Tb = self.Tb.to("K")
         Lv_stp = self.Lv_stp
 
         # Reduced temperatures
@@ -821,7 +821,7 @@ class fuel:
 
         x = 0.0
         y = Lv_stp * (((1.0 - Tr) / (1.0 - Trb)) ** 0.38)
-        Lvi = u.Quantity(np.where(T > Tc, x, y), "J/kg")
+        Lvi = units.Quantity(np.where(T > Tc, x, y), "J/kg")
 
         if comp_idx is not None:
             Lvi = Lvi[comp_idx]
@@ -830,15 +830,15 @@ class fuel:
 
     def diffusion_coeff(
         self,
-        p: u.Quantity,
-        T: u.Quantity,
+        p: units.Quantity,
+        T: units.Quantity,
         *,
         unit: str = "m^2/s",
-        sigma_gas: u.Quantity = 3.62e-10 * u.m,
-        epsilonByKB_gas: u.Quantity = 97.0 * u.K,
-        MW_gas: u.Quantity = 28.97e-3 * u.kg / u.mol,
+        sigma_gas: units.Quantity = 3.62e-10 * units.m,
+        epsilonByKB_gas: units.Quantity = 97.0 * units.K,
+        MW_gas: units.Quantity = 28.97e-3 * units.kg / units.mol,
         correlation: Literal["Wilke", "Tee"] = "Tee",
-    ) -> u.Quantity:
+    ) -> units.Quantity:
         """
         Compute diffusion coefficients using Lennard-Jones parameters.
 
@@ -846,17 +846,17 @@ class fuel:
         :meta private: Ambient gas defaults to air parameters.
 
         :param p: Pressure to evaluate diffusion coefficient at.
-        :type p: u.Quantity
+        :type p: units.Quantity
         :param T: Temperature to evaluate diffusion coefficient at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit to return the diffusion coefficient in.
         :type unit: str, optional
         :param sigma_gas: Collision diameter of the ambient gas.
-        :type sigma_gas: u.Quantity, optional
+        :type sigma_gas: units.Quantity, optional
         :param epsilonByKB_gas: Well depth over Boltzmann constant of the ambient gas.
-        :type epsilonByKB_gas: u.Quantity, optional
+        :type epsilonByKB_gas: units.Quantity, optional
         :param MW_gas: Mean molecular weight of ambient gas.
-        :type MW_gas: u.Quantity, optional
+        :type MW_gas: units.Quantity, optional
         :param correlation: Method to calculate sigma and epsilon ("Tee" or "Wilke").
         :type correlation: str, optional
         :return: Diffusion coefficient.
@@ -868,11 +868,11 @@ class fuel:
             epsilonByKB_i = self.epsilonByKB  # K
         elif correlation.casefold() == "Wilke".casefold():
             # Method of Wilke & Lee calculating liquid sigma and epsilon
-            Vmb_i = u.Quantity(np.zeros(self.num_compounds), "cm^3/mol")
+            Vmb_i = units.Quantity(np.zeros(self.num_compounds), "cm^3/mol")
             for n in range(self.num_compounds):
                 Vmb_i[n] = self.molar_liquid_vol(self.Tb[n])[n].to("cm^3/mol")
             sigma_i = 1.18 * Vmb_i ** (1 / 3)  # Angstroms, Poling (11-4.2)
-            sigma_i = u.Quantity(ustrip(sigma_i), "Angstrom")
+            sigma_i = units.Quantity(ustrip(sigma_i), "Angstrom")
             epsilonByKB_i = 1.15 * self.Tb.to("K")  # K , Poling (11-4.3)
         else:
             raise ValueError(f"Unrecognized correlation method: {correlation}")
@@ -921,18 +921,18 @@ class fuel:
             / (_p * _M_AB_i**0.5 * _sigmaAB_i**2 * _omegaD_i)
         )  # cm^2/s
         # Reattach units to D_AB_i
-        D_AB_i = u.Quantity(D_AB_i, "cm^2/s")
+        D_AB_i = units.Quantity(D_AB_i, "cm^2/s")
 
         return D_AB_i.to(unit)
 
     def surface_tension(
         self,
-        T: u.Quantity,
+        T: units.Quantity,
         *,
         unit: str = "N/m",
         comp_idx: int | None = None,
         correlation: Literal["Brock-Bird", "Pitzer"] = "Brock-Bird",
-    ) -> u.Quantity:
+    ) -> units.Quantity:
         """
         Calculate surface tension of each compound at a given temperature.
 
@@ -947,9 +947,9 @@ class fuel:
         :param correlation: Correlation method ("Brock-Bird" or "Pitzer").
         :type correlation: Literal["Brock-Bird", "Pitzer"], optional
         :return: Surface tension in the specified unit.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
-        T_ = ustrip(convert_temperature(T, "K"))
+        T_ = ustrip(T.to("K"))
         Tc = ustrip(self.Tc.to("Kelvin"))
         Pc = ustrip(self.Pc.to("bar"))
         Tb = ustrip(self.Tb.to("Kelvin"))
@@ -971,31 +971,31 @@ class fuel:
             raise ValueError(f"Unrecognized correlation method: {correlation}")
 
         st = Pc ** (2.0 / 3.0) * Tc ** (1.0 / 3.0) * Q * (1 - Tr) ** (11.0 / 9.0)
-        st = u.Quantity(st, "dyn/cm")
+        st = units.Quantity(st, "dyn/cm")
 
         if comp_idx is not None:
             st = st[comp_idx]
 
-        return u.Quantity(st).to(unit)
+        return units.Quantity(st).to(unit)
 
     def thermal_conductivity(
-        self, T: u.Quantity, *, unit: str = "W/(m*K)", comp_idx: int | None = None
-    ) -> u.Quantity:
+        self, T: units.Quantity, *, unit: str = "W/(m*K)", comp_idx: int | None = None
+    ) -> units.Quantity:
         """
         Calculate thermal conductivity at a given temperature.
 
         :meta private: Uses Latini et al. method (Poling equation 10-9.1).
 
         :param T: Temperature to evaluate thermal conductivity at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit to return the thermal conductivity in.
         :type unit: str, optional
         :param comp_idx: Index of compound to calculate property for.
         :type comp_idx: int, optional
         :return: Thermal conductivity in the specified unit.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
-        T_ = ustrip(convert_temperature(T, "K"))
+        T_ = ustrip(T.to("K"))
         MW = ustrip(self.MW.to("kg/mol"))
         Tc = ustrip(self.Tc.to("Kelvin"))
         Tb = ustrip(self.Tb.to("Kelvin"))
@@ -1025,7 +1025,7 @@ class fuel:
 
         A = Astar * Tb**alpha / (MW_beta * Tc**gamma)
         tc = A * (1 - Tr) ** (0.38) / (Tr ** (1 / 6))
-        tc = u.Quantity(tc, "W/(m*K)")
+        tc = units.Quantity(tc, "W/(m*K)")
 
         if comp_idx is not None:
             tc = tc[comp_idx]
@@ -1034,30 +1034,30 @@ class fuel:
 
     # --- Mixture functions ---
     def mixture_density(
-        self, Yi: FloatArrayLike, T: u.Quantity, *, unit: str = "kg/m^3"
-    ) -> u.Quantity:
+        self, Yi: FloatArrayLike, T: units.Quantity, *, unit: str = "kg/m^3"
+    ) -> units.Quantity:
         """
         Calculate mixture density at a given temperature.
 
         :param Yi: Mass fractions of each compound.
         :type Yi: FloatArrayLike
         :param T: Temperature to calculate the mixture density at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit to return the mixture density in.
         :type unit: str, optional
         :return: Mixture density in the specified unit.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
         return Yi @ self.density(T).to(unit)
 
     def mixture_kinematic_viscosity(
         self,
         Yi: FloatArrayLike,
-        T: u.Quantity,
+        T: units.Quantity,
         *,
         unit: str = "m^2/s",
         correlation: Literal["Kendall-Monroe", "Arrhenius"] = "Kendall-Monroe",
-    ) -> u.Quantity:
+    ) -> units.Quantity:
         """
         Calculate kinematic viscosity of the mixture.
 
@@ -1066,12 +1066,12 @@ class fuel:
         :param Yi: Mass fractions of each compound.
         :type Yi: np.ndarray
         :param T: Temperature to calculate the mixture kinematic viscosity at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit to return the mixture kinematic viscosity in.
         :param correlation: Mixing model ("Kendall-Monroe" or "Arrhenius").
         :type correlation: str, optional
         :return: Mixture kinematic viscosity in the specified unit.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
         nu_i = ustrip(self.viscosity_kinematic(T).to("m^2/s"))
         # Calculate mole fractions for each species
@@ -1086,29 +1086,29 @@ class fuel:
         else:
             raise ValueError(f"Unsupported correlation method: {correlation}")
 
-        return u.Quantity(nu, "m^2/s").to(unit)
+        return units.Quantity(nu, "m^2/s").to(unit)
 
     def mixture_dynamic_viscosity(
         self,
         Yi: FloatArrayLike,
-        T: u.Quantity,
+        T: units.Quantity,
         *,
         unit: str = "Pa*s",
         correlation: Literal["Kendall-Monroe", "Arrhenius"] = "Kendall-Monroe",
-    ) -> u.Quantity:
+    ) -> units.Quantity:
         """
         Calculate dynamic viscosity of the mixture.
 
         :param Yi: Mass fractions of each compound.
         :type Yi: np.ndarray
         :param T: Temperature to calculate the mixture dynamic viscosity at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit to return the mixture dynamic viscosity in.
         :type unit: str, optional
         :param correlation: Mixing model ("Kendall-Monroe" or "Arrhenius").
         :type correlation: str, optional
         :return: Mixture dynamic viscosity in the specified unit.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
         nu = self.mixture_kinematic_viscosity(Yi, T, correlation=correlation)
         rho = self.mixture_density(Yi, T)
@@ -1118,24 +1118,24 @@ class fuel:
     def mixture_vapor_pressure(
         self,
         Yi: FloatArrayLike,
-        T: u.Quantity,
+        T: units.Quantity,
         *,
         unit: str = "Pa",
         correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
-    ) -> u.Quantity:
+    ) -> units.Quantity:
         """
         Calculate vapor pressure of the mixture.
 
         :param Yi: Mass fractions of each compound in the mixture.
         :type Yi: np.ndarray
         :param T: Temperature to calculate the mixture vapor pressure at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit to return the mixture vapor pressure in.
         :type unit: str, optional
         :param correlation: Correlation method ("Ambrose-Walton" or "Lee-Kesler").
         :type correlation: str, optional
         :return: Mixture vapor pressure in the specified unit.
-        :rtype: u.Quantity
+        :rtype: units.Quantity
         """
         # Mole fraction for each compound
         Xi = self.Y2X(Yi)
@@ -1144,7 +1144,7 @@ class fuel:
         p_sati = self.psat(T, correlation=correlation)
 
         # Mixture vapor pressure via Raoult's law
-        p_v = u.Quantity(p_sati.to("Pa") @ Xi, "Pa")
+        p_v = units.Quantity(p_sati.to("Pa") @ Xi, "Pa")
 
         return p_v.to(unit)
 
@@ -1152,7 +1152,7 @@ class fuel:
         self,
         Yi: FloatArrayLike,
         *,
-        Tvals: u.Quantity | None = None,
+        Tvals: units.Quantity | None = None,
         unit: str = "mks",
         correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
     ) -> tuple[float, float, float, float]:
@@ -1162,7 +1162,7 @@ class fuel:
         :param Yi: Mass fractions of each compound in the mixture.
         :type Yi: FloatArrayLike
         :param Tvals: Temperature range or nodes for Antoine fit (default [273.15 K, min(Tb)]).
-        :type Tvals: u.Quantity, optional
+        :type Tvals: units.Quantity, optional
         :param unit: Units for pressure in fit ("mks", "cgs", "bar", "atm")
         :type unit: str, optional
         :param correlation: Correlation method ("Ambrose-Walton" or "Lee-Kesler").
@@ -1175,7 +1175,7 @@ class fuel:
             print("Tvals not specified, using [273.15, min(Tb_mix)] for mixture.")
             Xi = self.Y2X(Yi)
             Tb = mixing_rule(self.Tb, Xi).to("K")
-            T = np.linspace(273.15 * u.K, np.min(Tb), 20)
+            T = np.linspace(273.15 * units.K, np.min(Tb), 20)
         elif len(Tvals) == 2:
             T = np.linspace(Tvals[0], Tvals[1], 20)
         elif len(Tvals) > 2:
@@ -1183,7 +1183,7 @@ class fuel:
         else:
             raise ValueError("Tvals must be None, length 2, or length > 2.")
 
-        T = convert_temperature(T, "K")
+        T = T.to("K")
 
         # Antoine equation log10(p) = A - B/(C + T)
         def antoine_eq(T, A, B, C):
@@ -1204,7 +1204,7 @@ class fuel:
             return A - B / (T + C)
 
         # Determine conversion factor for pressure in MKS, CGS, bar, or atm
-        D = ustrip((1 * u.Pa).to(unit))
+        D = ustrip((1 * units.Pa).to(unit))
 
         Pvals = np.zeros(len(T))
         for k in range(len(T)):
@@ -1220,11 +1220,11 @@ class fuel:
     def mixture_surface_tension(
         self,
         Yi: FloatArrayLike,
-        T: u.Quantity,
+        T: units.Quantity,
         *,
         unit: str = "N/m",
         correlation: Literal["Pitzer", "Brock-Bird"] = "Brock-Bird",
-    ) -> u.Quantity:
+    ) -> units.Quantity:
         """
         Calculate surface tension of the mixture.
 
@@ -1233,11 +1233,11 @@ class fuel:
         :param Yi: Mass fractions of each compound in the mixture.
         :type Yi: np.ndarray
         :param T: Temperature to calculate the surface tension at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param correlation: Correlation method ("Pitzer" or "Brock-Bird").
         :type correlation: str, optional
         :return: Mixture surface tension in the specified unit.
-        :rtype: u.Quantity in the specified unit
+        :rtype: units.Quantity in the specified unit
         """
         # Mole fraction for each compound
         Xi = self.Y2X(Yi)
@@ -1246,23 +1246,23 @@ class fuel:
         return mixing_rule(sti, Xi, pseudo_prop="arithmetic").to(unit)
 
     def mixture_thermal_conductivity(
-        self, Yi: FloatArrayLike, T: u.Quantity, *, unit: str = "W/(m*K)"
-    ) -> u.Quantity:
+        self, Yi: FloatArrayLike, T: units.Quantity, *, unit: str = "W/(m*K)"
+    ) -> units.Quantity:
         """
         Calculate thermal conductivity of the mixture.
 
         :param Yi: Mass fractions of each compound in the mixture.
         :type Yi: np.ndarray
         :param T: Temperature to calculate the thermal conductivity at.
-        :type T: u.Quantity
+        :type T: units.Quantity
         :param unit: Unit of the thermal conductivity.
         :type unit: str, optional
         :return: Thermal conductivity in the specified unit.
-        :rtype: u.Quantity in the specified unit
+        :rtype: units.Quantity in the specified unit
         """
         tc = self.thermal_conductivity(T)
         tc_mix = np.sum(Yi * tc.to(unit) ** (-2)) ** (-0.5)
-        return u.Quantity(tc_mix, unit)
+        return units.Quantity(tc_mix, unit)
 
 
 __all__ = ["fuel"]

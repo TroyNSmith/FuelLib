@@ -3,33 +3,34 @@
 from collections.abc import Sequence
 from typing import Literal
 
-import astropy.units as u
 import numpy as np
 import numpy.typing as npt
+
+from . import units
 
 type FloatArrayLike = npt.NDArray[np.float64] | Sequence[float]
 
 
 def mixing_rule(
-    var_n: u.Quantity,
+    var_n: units.Quantity,
     X: FloatArrayLike,
     *,
     pseudo_prop: Literal["arithmetic", "geometric"] = "arithmetic",
-) -> u.Quantity:
+) -> units.Quantity:
     """
     Mixing rules for computing mixture properties.
 
     :param var_n: Individual compound properties.
-    :type var_n: u.Quantity
+    :type var_n: units.Quantity
     :param X: Mole fractions of the compounds.
     :type X: FloatArrayLike
     :param pseudo_prop: Type of mean ("arithmetic" or "geometric").
     :type pseudo_prop: str, optional
     :return: Mixture property value.
-    :rtype: u.Quantity
+    :rtype: units.Quantity
     """
     num_comps = len(var_n)
-    var_mix = u.Quantity(0.0, var_n.unit)
+    var_mix = units.Quantity(0.0, var_n.unit)
     for i in range(num_comps):
         for j in range(num_comps):
             if pseudo_prop.casefold() == "geometric":
