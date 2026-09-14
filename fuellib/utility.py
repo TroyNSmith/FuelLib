@@ -1,23 +1,36 @@
 """Utility functions for mixture calculations and droplet properties."""
 
+from collections.abc import Sequence
+from typing import Literal
+
 import numpy as np
+import numpy.typing as npt
+
+from . import units
+
+type FloatArrayLike = npt.NDArray[np.float64] | Sequence[float]
 
 
-def mixing_rule(var_n, X, pseudo_prop="arithmetic"):
+def mixing_rule(
+    var_n: units.Quantity,
+    X: FloatArrayLike,
+    *,
+    pseudo_prop: Literal["arithmetic", "geometric"] = "arithmetic",
+) -> units.Quantity:
     """
     Mixing rules for computing mixture properties.
 
     :param var_n: Individual compound properties.
-    :type var_n: np.ndarray
+    :type var_n: units.Quantity
     :param X: Mole fractions of the compounds.
-    :type X: np.ndarray
+    :type X: FloatArrayLike
     :param pseudo_prop: Type of mean ("arithmetic" or "geometric").
     :type pseudo_prop: str, optional
     :return: Mixture property value.
-    :rtype: float
+    :rtype: units.Quantity
     """
     num_comps = len(var_n)
-    var_mix = 0.0
+    var_mix = units.Quantity(0.0, var_n.unit)
     for i in range(num_comps):
         for j in range(num_comps):
             if pseudo_prop.casefold() == "geometric":
