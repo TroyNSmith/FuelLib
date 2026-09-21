@@ -132,22 +132,21 @@ def get_fueldata_props_dir():
     return _get_props_dir_for_fueldata(get_fueldata_dir())
 
 
-def get_metadata_decomp_name(fuel_name, fuel_data_dir=None):
+def get_metadata_decomp_name(fuel_name: str, fuel_data_dir: str | None = None) -> str:
     """
     Load decomposition name mapping from fuel_metadata.yaml.
 
     :param fuel_name: Name of the fuel to look up.
     :type fuel_name: str
     :param fuel_data_dir: Directory containing fuel data. If None, uses embedded data.
-    :type fuel_data_dir: str, optional
+    :type fuel_data_dir: str or Path, optional
     :return: Decomposition name from metadata.
     :rtype: str
     :raises FileNotFoundError: If fuel_metadata.yaml is missing or fuel not found in metadata
     """
     if not HAS_YAML:
-        raise ImportError(
-            "PyYAML is required to use custom fuels. Install it with: pip install pyyaml"
-        )
+        msg = "PyYAML is required to use custom fuels. Install it with: pip install pyyaml"
+        raise ImportError(msg)
 
     if fuel_data_dir is None:
         # Use embedded data

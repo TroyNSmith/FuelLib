@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from get_pred_and_data import get_pred_and_data
 
-from fuellib.units import PintUnits
+from fuellib.utils.units import PintUnits
 
 # Locate the tests baseline directory
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))

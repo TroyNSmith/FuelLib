@@ -31,7 +31,7 @@ from scipy import stats
 
 import fuellib
 from fuellib import PintUnits as Units
-from fuellib.utility import mixing_rule
+from fuellib.utils.utility import mixing_rule
 
 # Disable warnings from pandas about Pint units
 warnings.filterwarnings("ignore", message="The unit of the quantity is stripped*")

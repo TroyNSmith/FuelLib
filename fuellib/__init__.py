@@ -16,18 +16,21 @@ except ImportError:
 
 # Import fuel class
 # Import submodules for namespacing
-from . import constants, convert, utility
+from . import correlate, gcm
+from .fuel import Fuel
+from .utils import constants, convert, utility
 
 # Import data locator functions
-from ._data_locator import *
-from .fuel import Fuel
-from .units import PintUnits
+from .utils._data_locator import *
+from .utils.units import PintUnits
 
 __all__ = [
     "Fuel",
     "PintUnits",
     "constants",
     "convert",
+    "correlate",
+    "gcm",
     "get_data_dir",
     "get_fueldata_decomp_dir",
     "get_fueldata_dir",

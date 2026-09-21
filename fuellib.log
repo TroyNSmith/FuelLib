@@ -1,0 +1,247 @@
+2026-09-21 12:19:40 Initializing Fuel class for posf10325 
+
+2026-09-21 12:19:55 Initializing Fuel class for decane 
+
+2026-09-21 12:20:22 Initializing Fuel class for decane 
+
+2026-09-21 12:20:51 Initializing Fuel class for decane 
+
+2026-09-21 12:20:58 Initializing Fuel class for decane 
+
+2026-09-21 13:01:57 Initializing Fuel class for decane 
+
+2026-09-21 13:05:18 Initializing Fuel class for decane 
+
+2026-09-21 13:05:32 Initializing Fuel class for decane 
+
+2026-09-21 13:05:39 Initializing Fuel class for decane 
+
+2026-09-21 13:05:47 Initializing Fuel class for decane 
+
+2026-09-21 13:05:56 Initializing Fuel class for decane 
+
+2026-09-21 13:06:08 Initializing Fuel class for decane 
+
+2026-09-21 13:15:42 Initializing Fuel class for decane 
+
+2026-09-21 13:15:42 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:17:33 Initializing Fuel class for decane 
+
+2026-09-21 13:17:33 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:25:17 Initializing Fuel class for posf10325 
+
+2026-09-21 13:26:03 Initializing Fuel class for posf10325 
+
+2026-09-21 13:26:03 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:28:44 Initializing Fuel class for posf10325 
+
+2026-09-21 13:28:44 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:28:55 Initializing Fuel class for posf10325 
+
+2026-09-21 13:28:55 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:30:27 Initializing Fuel class for posf10325 
+
+2026-09-21 13:30:27 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:31:07 Initializing Fuel class for posf10325 
+
+2026-09-21 13:31:07 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:32:21 Initializing Fuel class for posf10325 
+
+2026-09-21 13:32:21 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:40:42 Initializing Fuel class for posf10325 
+
+2026-09-21 13:40:42 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:41:35 Initializing Fuel class for posf10325 
+
+2026-09-21 13:41:35 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:43:05 Initializing Fuel class for posf10325 
+
+2026-09-21 13:43:05 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:43:14 Initializing Fuel class for posf10325 
+
+2026-09-21 13:43:14 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:43:58 Initializing Fuel class for posf10325 
+
+2026-09-21 13:43:58 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:44:17 Initializing Fuel class for posf10325 
+
+2026-09-21 13:44:17 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:44:31 Initializing Fuel class for posf10325 
+
+2026-09-21 13:44:31 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:50:05 Initializing Fuel class for posf10325 
+
+2026-09-21 13:50:05 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:50:15 Initializing Fuel class for posf10325 
+
+2026-09-21 13:50:15 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:52:40 Initializing Fuel class for posf10325 
+
+2026-09-21 13:52:40 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 13:57:57 Initializing Fuel class for posf10325 
+
+2026-09-21 13:57:57 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 14:20:21 Initializing Fuel class for posf10325 
+
+2026-09-21 14:20:36 Initializing Fuel class for posf10325 
+
+2026-09-21 14:20:50 Initializing Fuel class for posf10325 
+
+2026-09-21 14:20:50 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 14:21:40 Initializing Fuel class for posf10325 
+
+2026-09-21 14:21:40 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 14:24:41 Initializing Fuel class for posf10325 
+
+2026-09-21 14:24:41 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 14:25:07 Initializing Fuel class for posf10325 
+
+2026-09-21 14:25:07 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 14:29:51 Initializing Fuel class for posf10325 
+
+2026-09-21 14:29:51 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 14:30:00 Initializing Fuel class for posf10325 
+
+2026-09-21 14:30:00 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 14:42:59 Initializing Fuel class for posf10325 
+
+2026-09-21 14:42:59 Setting legacy property calls (e.g., fuel.Tc) using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 14:48:19 Initializing Fuel class for posf10325 
+
+2026-09-21 15:06:32 Initializing Fuel class for posf10325 
+
+2026-09-21 15:07:11 Initializing Fuel class for posf10325 
+
+2026-09-21 15:07:35 Initializing Fuel class for posf10325 
+
+2026-09-21 15:07:51 Initializing Fuel class for posf10325 
+
+2026-09-21 15:08:12 Initializing Fuel class for posf10325 
+
+2026-09-21 15:15:34 Initializing Fuel class for posf10325 
+
+2026-09-21 15:15:34 GCM data fetched from legacy naming convention /Users/tsmith5/Documents/coding/FuelLib/fuellib/data/fuelData/groupDecompositionData/posf-cat-a.csv. To maintain compatibility, consider
+renaming your files to /Users/tsmith5/Documents/coding/FuelLib/fuellib/data/fuelData/groupDecompositionData/posf-cat-a.gani.csv. 
+
+2026-09-21 15:15:56 Initializing Fuel class for posf10325 
+
+2026-09-21 15:15:56 GCM data fetched from legacy naming convention /Users/tsmith5/Documents/coding/FuelLib/fuellib/data/fuelData/groupDecompositionData/posf-cat-a.csv.
+To maintain compatibility, consider renaming your files to /Users/tsmith5/Documents/coding/FuelLib/fuellib/data/fuelData/groupDecompositionData/posf-cat-a.gani.csv. 
+
+2026-09-21 15:16:16 Initializing Fuel class for posf10325 
+
+2026-09-21 15:16:16 GCM data fetched from legacy naming convention posf-cat-a.csv.
+To maintain compatibility, consider renaming your files to posf-cat-a.gani.csv. 
+
+2026-09-21 15:16:43 Initializing Fuel class for posf10325 
+
+2026-09-21 15:16:43 GCM data fetched using legacy naming convention posf-cat-a.csv.
+To maintain compatibility, consider renaming your file to posf-cat-a.gani.csv. 
+
+2026-09-21 15:29:03 Initializing Fuel class for posf10325 
+
+2026-09-21 15:29:50 Initializing Fuel class for posf10325 
+
+2026-09-21 15:30:00 Initializing Fuel class for posf10325 
+
+2026-09-21 15:30:00 GCM data fetched using legacy naming convention posf-cat-a.csv.
+To maintain compatibility, consider renaming your file to posf-cat-a.gani.csv. 
+
+2026-09-21 15:30:11 Initializing Fuel class for posf10325 
+
+2026-09-21 15:30:11 GCM data fetched using legacy naming convention posf-cat-a.csv.
+To maintain compatibility, consider renaming your file to posf-cat-a.ganii.csv. 
+
+2026-09-21 15:30:18 Initializing Fuel class for posf10325 
+
+2026-09-21 15:30:48 Initializing Fuel class for posf10325 
+
+2026-09-21 15:31:09 Initializing Fuel class for posf10325 
+
+2026-09-21 15:31:32 Initializing Fuel class for posf10325 
+
+2026-09-21 15:31:43 Initializing Fuel class for posf10325 
+
+2026-09-21 15:31:43 GCM data fetched using legacy naming convention posf-cat-a.csv.
+To maintain compatibility, consider renaming your file to posf-cat-a.gani.csv. 
+
+2026-09-21 15:32:09 Initializing Fuel class for posf10325 
+
+2026-09-21 15:33:15 Initializing Fuel class for posf10325 
+
+2026-09-21 15:33:15 GCM data fetched using legacy naming convention posf10325_init.csv.
+To maintain compatibility, consider renaming your file to posf10325.gcxgc.csv. 
+
+2026-09-21 15:33:32 Initializing Fuel class for posf10325 
+
+2026-09-21 15:33:32 GCM data fetched using legacy naming convention posf10325_init.csv.
+To maintain compatibility, consider renaming your file to posf10325.gcxgc.csv. 
+
+2026-09-21 15:34:43 Initializing Fuel class for posf10325 
+
+2026-09-21 15:34:43 GCM data fetched using legacy naming convention posf10325_init.csv.
+To maintain compatibility, consider renaming your file to posf10325.gcxgc.csv. 
+
+2026-09-21 15:34:43 Legacy property calls (e.g., fuel.Tc) set using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+
+2026-09-21 15:35:12 Initializing Fuel class for posf10325 
+
+2026-09-21 15:35:12 GCM data fetched using legacy naming convention posf10325_init.csv.
+To maintain compatibility, consider renaming your file to posf10325.gcxgc.csv. 
+
+2026-09-21 15:35:12 Legacy property calls (e.g., fuel.Tc) set using the Gani GCM method. To access other
+method predictions, use ``fuel.get_gcm_property(method_name, property_name)``. 
+

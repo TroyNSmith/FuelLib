@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ._data_locator import get_fueldata_dir, get_metadata_props_data
+from .utils._data_locator import get_fueldata_dir, get_metadata_props_data
 from .fuel import Fuel
-from .types import FloatArray, PintArray
-from .units import PintUnits as Units
+from .utils.types import FloatVector, PintVector
+from .utils.units import PintUnits as Units
 
 # ANSI codes
 BLUE = "\033[94m"  # ANSI code for blue text
@@ -218,7 +218,7 @@ def _get_pred_and_data(
     *,
     decomp_name: str | None = None,
     fuel_data_dir: str | None = None,
-) -> tuple[PintArray | None, PintArray | None, PintArray, PintArray]:
+) -> tuple[PintVector | None, PintVector | None, PintVector, PintVector]:
     """Get predicted and experimental data for a given fuel and property."""
     default_ranges_by_property = {
         "Density": Units.Quantity([-40, 40], "celsius"),
@@ -258,15 +258,17 @@ def _get_pred_and_data(
             try:
                 data = pd.read_csv(data_file)
                 if prop_name in data.columns:
-                    t_vals: FloatArray = data.Temperature.iloc[1:].to_numpy(dtype=float)
+                    t_vals: FloatVector = data.Temperature.iloc[1:].to_numpy(
+                        dtype=float
+                    )
                     t_units: str = data.Temperature.iloc[0]
-                    data_temps: PintArray = Units.Quantity(t_vals, t_units).to("K")
+                    data_temps: PintVector = Units.Quantity(t_vals, t_units).to("K")
 
-                    data_vals: FloatArray = (
+                    data_vals: FloatVector = (
                         data[prop_name].iloc[1:].to_numpy(dtype=float)
                     )
                     data_units: str = data[prop_name].iloc[0]
-                    data_props: PintArray = Units.Quantity(data_vals, data_units)
+                    data_props: PintVector = Units.Quantity(data_vals, data_units)
 
                     valid_idxs = ~np.isnan(data_props)
                     data_temps = data_temps[valid_idxs]

@@ -1,24 +1,28 @@
 """Fuel class for Group Contribution Method calculations."""
 
 import os
+from functools import cached_property
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
 import pandas as pd
+from rdkit.Chem import Mol
 from scipy.optimize import curve_fit
 
-from ._data_locator import (
-    get_fueldata_decomp_dir,
-    get_fueldata_dir,
-    get_fueldata_gc_dir,
-    get_fueldata_props_dir,
-    get_gcmtable_dir,
+from .data.locator import (
+    DEFAULT_FUELDATA_DIR,
+    file_path,
     get_metadata_decomp_name,
+    validate_fuel_data_dir,
 )
-from .constants import T_STP, EpsilonByKB_g, MW_g, Sigma_g
-from .types import FloatArray, PintArray, PintScalar
-from .units import PintUnits
-from .utility import mixing_rule
+from .gcm import GCMRegistry
+from .rdk import mol
+from .utils.constants import T_STP, EpsilonByKB_g, MW_g, Sigma_g
+from .utils.logger import logger
+from .utils.types import FloatVector, IntVector, PintScalar, PintVector, StrVector
+from .utils.units import PintUnits
+from .utils.utility import mixing_rule
 
 NumCompounds = int
 
@@ -35,106 +39,18 @@ class Fuel:
     :type fuelDataDir: str, optional
     """
 
-    # Type annotations for documented attributes
-    #: Root directory for fuel data (custom or embedded)
-    fuelDataDir: str
-
-    #: Directory containing GCxGC compositional data files
-    fuelDataGcDir: str
-
-    #: Directory containing functional group decomposition files
-    fuelDataDecompDir: str
-
-    #: Directory containing experimental property data (may be None)
-    fuelDataPropsDir: str
-
     #: Name of the fuel/mixture
     name: str
-
-    #: List of compound names in the mixture
-    compounds: list
-
-    #: Molecular formulas for each compound
-    formulas: np.ndarray | None
-
-    #: Mass fractions of each compound. Shape: (num_compounds,)
-    Y_0: np.ndarray
-
-    #: Functional group decomposition matrix. Shape: (num_compounds, num_groups)
-    Nij: FloatArray
-
-    #: Number of compounds in the mixture
-    num_compounds: int
-
-    #: Number of functional groups in the decomposition
-    num_groups: int
-
-    #: Molecular weights in kg/mol. Shape: (num_compounds,)
-    MW: PintArray
-
-    #: Critical temperatures in K. Shape: (num_compounds,)
-    Tc: PintArray
-
-    #: Critical pressures in Pa. Shape: (num_compounds,)
-    Pc: PintArray
-
-    #: Critical volumes in m³/mol. Shape: (num_compounds,)
-    Vc: PintArray
-
-    #: Boiling temperatures in K. Shape: (num_compounds,)
-    Tb: PintArray
-
-    #: Melting temperatures in K. Shape: (num_compounds,)
-    Tm: PintArray
-
-    #: Enthalpy of formation in J/mol. Shape: (num_compounds,)
-    Hf: PintArray
-
-    #: Gibbs free energy in J/mol. Shape: (num_compounds,)
-    Gf: PintArray
-
-    #: Enthalpy of vaporization at 298 K in J/mol. Shape: (num_compounds,)
-    Hv_stp: PintArray
-
-    #: Latent heat of vaporization at 298 K in J/kg. Shape: (num_compounds,)
-    Lv_stp: PintArray
-
-    #: Molar specific heat at 298 K in J/mol/K. Shape: (num_compounds,)
-    Cp_stp: PintArray
-
-    #: Molar liquid volume at 298 K in m³/mol. Shape: (num_compounds,)
-    Vm_stp: PintArray
-
-    #: Acentric factors. Shape: (num_compounds,)
-    omega: PintArray
-
-    #: Lennard-Jones collision diameters in m. Shape: (num_compounds,)
-    sigma: PintArray
-
-    #: Lennard-Jones well depths in K. Shape: (num_compounds,)
-    epsilonByKB: PintArray
-
-    #: Hydrocarbon types ("n-alkane", "iso-alkane", "cyclo-alkane", "aromatic", "alkene")
-    hc_type: np.ndarray
-
-    #: Family codes for thermal conductivity (0: saturated, 1: aromatic, 2: cycloparaffin, 3: olefin)
-    fam: np.ndarray
-
-    #: Carbon numbers. Shape: (num_compounds,)
-    nC: np.ndarray
-
-    #: Hydrogen numbers. Shape: (num_compounds,)
-    nH: np.ndarray
-
-    #: PelePhysics keys for each compound (if available)
-    pelephysics_keys: np.ndarray | None
-
-    # Number of first and second order groups from Constantinou and Gani
-    N_g1 = 78
-    N_g2 = 43
+    #: Name of the groupDecomposition file if different from name
+    decompName: str | None = None
+    #: Directory where the fuel data is stored
+    fuelDataDir: str | Path = DEFAULT_FUELDATA_DIR
 
     def __init__(
-        self, name: str, decompName: str | None = None, fuelDataDir: str | None = None
+        self,
+        name: str,
+        decompName: str | None = None,
+        fuelDataDir: str | Path | None = DEFAULT_FUELDATA_DIR,
     ) -> None:
         """
         Initialize the fuel object and calculate GCM properties.
@@ -146,345 +62,301 @@ class Fuel:
         :param fuelDataDir: Directory where the fuel data is stored. If None, uses built-in embedded data.
         :type fuelDataDir: str, optional
         """
+        logger.info("Initializing Fuel class for %s", name)
 
         self.name = name
-        if decompName is None:
-            # Try to get decomposition name from metadata
-            decompName = get_metadata_decomp_name(name, fuelDataDir)
-
-        # Determine and set data directories for this fuel instance
-        if fuelDataDir is None:
-            # Use built-in embedded data
-            self.fuelDataDir = get_fueldata_dir()
-            self.fuelDataGcDir = get_fueldata_gc_dir()
-            self.fuelDataDecompDir = get_fueldata_decomp_dir()
-            self.fuelDataPropsDir = get_fueldata_props_dir()
-        else:
-            # Validate and use custom fuel directory
-            from ._data_locator import (
-                _get_props_dir_for_fueldata,
-                _validate_fuel_data_dir,
-            )
-
-            _validate_fuel_data_dir(fuelDataDir)
-            self.fuelDataDir = fuelDataDir
-            self.fuelDataGcDir = os.path.join(fuelDataDir, "gcData")
-            self.fuelDataDecompDir = os.path.join(fuelDataDir, "groupDecompositionData")
-            self.fuelDataPropsDir = _get_props_dir_for_fueldata(fuelDataDir)
-
-        # Get GCM table directory (always from built-in data)
-        gcmtable_dir = get_gcmtable_dir()
-
-        self.groupDecompFile = os.path.join(self.fuelDataDecompDir, f"{decompName}.csv")
-        self.gcxgcFile = os.path.join(self.fuelDataGcDir, f"{name}_init.csv")
-        self.gcmTableFile = os.path.join(gcmtable_dir, "gcmTable.csv")
-
-        # Read functional group data for mixture (num_compounds,num_groups)
-        df_Nij = pd.read_csv(self.groupDecompFile)
-        self.Nij = df_Nij.iloc[:, 1:].to_numpy()
-        self.num_compounds = self.Nij.shape[0]
-        self.num_groups = self.Nij.shape[1]
-
-        # Classify hydrocarbon by family (used in thermal conductivity)
-        # 0: saturated hydrocarbons
-        # 1: aromatics
-        # 2: cycloparaffins
-        # 3: olefins
-        self.fam = np.zeros(self.num_compounds, dtype=int)
-
-        # Classify hydrocarbon by type (n-alkane, iso-alkane, cyclo-alkane, aromatic)
-        # Based on group decompositions from Constantinou-Gani method
-        self.hc_type = np.array([""] * self.num_compounds, dtype=object)
-
-        aromatics = 10  # starting index for aromatic groups
-        num_aromatics = 5
-        branching = 78  # starting index for branching groups (Group j (CH3)2CH through C(CH3)2C(CH3)2)
-        num_branching = 5  # groups 78-82 inclusive
-        cyclos = 83  # starting index for membered ring groups (3-7 membered rings)
-        num_cyclos = 5
-        olefins = 4  # starting index for double bound groups
-        num_olefins = 6
-
-        for i in range(self.num_compounds):
-            # Check if aromatic: does it contain AC's?
-            if sum(self.Nij[i, aromatics : aromatics + num_aromatics]) > 0:
-                self.fam[i] = 1
-                self.hc_type[i] = "aromatic"
-            # Check if cycloparaffin: does it contain rings?
-            elif sum(self.Nij[i, cyclos : cyclos + num_cyclos]) > 0:
-                self.fam[i] = 2
-                self.hc_type[i] = "cyclo-alkane"
-            # Check if olefin: does it contain double bonds?
-            elif sum(self.Nij[i, olefins : olefins + num_olefins]) > 0:
-                self.fam[i] = 3
-                self.hc_type[i] = "alkene"
-            # Check for branching groups (CH, C quaternary carbons)
-            elif sum(self.Nij[i, branching : branching + num_branching]) > 0:
-                self.hc_type[i] = "iso-alkane"
-            else:
-                # Only CH3 and CH2 -> n-alkane (linear)
-                self.hc_type[i] = "n-alkane"
-
-        # Calculate carbon and hydrogen numbers from first-order group decomposition
-        # For jet fuels, use only alkyl (0-3) and aromatic (10-14) groups
-        # Alkyl: CH3=1C,3H; CH2=1C,2H; CH=1C,1H; C=1C,0H
-        # Aromatic: ACH=1C,1H; AC=1C,0H; ACCH3=2C,3H; ACCH2=2C,2H; ACCH=2C,1H
-        alkyl_carbons = np.array([1, 1, 1, 1])  # groups 0-3
-        alkyl_hydrogens = np.array([3, 2, 1, 0])
-        # Olefinic: group 4 appears to represent 2 carbons with 3 hydrogens in UNIFAC-based system
-        olefinic_carbons = np.array([2, 1, 1, 0, 0, 0])  # groups 4-9
-        olefinic_hydrogens = np.array([3, 1, 0, 0, 0, 0])
-        aromatic_carbons = np.array([1, 1, 2, 2, 2])  # groups 10-14
-        aromatic_hydrogens = np.array([1, 0, 3, 2, 1])
-
-        self.nC = np.zeros(self.num_compounds, dtype=float)
-        self.nH = np.zeros(self.num_compounds, dtype=float)
-        for i in range(self.num_compounds):
-            # Alkyl contribution (groups 0-3)
-            self.nC[i] = np.dot(self.Nij[i, 0:4], alkyl_carbons)
-            self.nH[i] = np.dot(self.Nij[i, 0:4], alkyl_hydrogens)
-            # Olefinic contribution (groups 4-9)
-            self.nC[i] += np.dot(self.Nij[i, 4:10], olefinic_carbons)
-            self.nH[i] += np.dot(self.Nij[i, 4:10], olefinic_hydrogens)
-            # Aromatic contribution (groups 10-14)
-            self.nC[i] += np.dot(self.Nij[i, 10:15], aromatic_carbons)
-            self.nH[i] += np.dot(self.Nij[i, 10:15], aromatic_hydrogens)
-
-        # Read GCxGC/compound data
-        df_gcxgc = pd.read_csv(self.gcxgcFile)
-
-        self.compounds = [
-            compound.strip() for compound in df_gcxgc["Compound"].to_list()
-        ]
-
-        # Load molecular formulas if available
-        if "Formula" in df_gcxgc.columns:
-            self.formulas = np.array(
-                [
-                    formula.strip() if pd.notna(formula) else None
-                    for formula in df_gcxgc["Formula"].to_list()
-                ]
-            )
-        else:
-            self.formulas = None
-
-        if "PelePhysics Key" in df_gcxgc.columns:
-            self.pelephysics_keys = np.array(
-                [key.strip() for key in df_gcxgc["PelePhysics Key"].to_list()]
-            )
-        else:
-            self.pelephysics_keys = None
-
-        self.Y_0 = df_gcxgc["Weight %"].to_numpy().flatten().astype(float)
-        self.Y_0 /= np.sum(self.Y_0)
-
-        # Make sure mixture data is consistent:
-        if self.num_groups < self.N_g1:
-            raise ValueError(
-                f"Insufficient mixture description:\n"
-                f"The number of columns in {self.groupDecompFile} is less than "
-                f"the required number of first-order groups (N_g1 = {self.N_g1})."
-            )
-        if self.Y_0.shape[0] != self.num_compounds:
-            raise ValueError(
-                f"Insufficient mixture description:\n"
-                f"The number of compounds in {self.groupDecompFile} does not "
-                f"equal the number of compounds in {self.gcxgcFile}."
-            )
-
-        # Read and store GCM table properties
-        df_table = pd.read_csv(self.gcmTableFile)
-        df_table = df_table.drop(columns=["Units"])
-
-        def get_row(property_name: str) -> FloatArray:
-            """
-            Get property row from GCM table.
-
-            :param property_name: Name of the property to retrieve.
-            :type property_name: str
-            :return: Property values for all functional groups.
-            :rtype: np.ndarray
-            :raises ValueError: If property not found in GCM table.
-            """
-            row = df_table[df_table["Property"] == property_name]
-            if row.empty:
-                raise ValueError(f"Property '{property_name}' not found in GCM table.")
-            return row.iloc[:, 1:].to_numpy().flatten()
-
-        # --- Compute critical properties at standard temp (num_compounds,)
-        # Molecular weights
-        _mwk = get_row("MW")
-        _mw: FloatArray = np.matmul(self.Nij, _mwk)
-        self.MW = PintUnits.Quantity(_mw, "g/mol").to("kg/mol")
-
-        # Tc (critical temperature)
-        _tck = get_row("tck")
-        _tc: FloatArray = 181.128 * np.log(np.matmul(self.Nij, _tck))
-        self.Tc = PintUnits.Quantity(_tc, "K")
-
-        # Pc (critical pressure)
-        _pck = get_row("pck")
-        _pc: FloatArray = 1.3705 + np.power(np.matmul(self.Nij, _pck) + 0.10022, -2.0)
-        self.Pc = PintUnits.Quantity(_pc, "bar").to("Pa")
-
-        # Vc (critical volume)
-        _vck = get_row("vck")
-        _vc: FloatArray = -0.00435 + (np.matmul(self.Nij, _vck))
-        self.Vc = PintUnits.Quantity(_vc, "m^3/kmol").to("m^3/mol")
-
-        # Tb (boiling temperature)
-        _tbk = get_row("tbk")
-        _tb: FloatArray = 204.359 * np.log(np.matmul(self.Nij, _tbk))
-        self.Tb = PintUnits.Quantity(_tb, "K")
-
-        # Tm (melting temperature)
-        _tmk = get_row("tmk")
-        _tm: FloatArray = 102.425 * np.log(np.matmul(self.Nij, _tmk))
-        self.Tm = PintUnits.Quantity(_tm, "K")
-
-        # H_f (enthalpy of formation)
-        _hfk = get_row("hfk")
-        _hf: FloatArray = 10.835 + np.matmul(self.Nij, _hfk)
-        self.Hf = PintUnits.Quantity(_hf, "kJ/mol").to("J/mol")
-
-        # G_f (Gibbs free energy)
-        _gfk = get_row("gfk")
-        _gf: FloatArray = -14.828 + np.matmul(self.Nij, _gfk)
-        self.Gf = PintUnits.Quantity(_gf, "kJ/mol").to("J/mol")
-
-        # H_v,stp (enthalpy of vaporization at 298 K)
-        _hvk = get_row("hvk")
-        _hv: FloatArray = 6.829 + (np.matmul(self.Nij, _hvk))
-        self.Hv_stp = PintUnits.Quantity(_hv, "kJ/mol").to("J/mol")
-
-        # omega (accentric factor)
-        _wk = get_row("wk")
-        _omega = 0.4085 * np.power(
-            np.log(np.matmul(self.Nij, _wk) + 1.1507), (1.0 / 0.5050)
+        # Validate and set the fuel data directory
+        self.fuelDataDir = validate_fuel_data_dir(fuelDataDir or DEFAULT_FUELDATA_DIR)
+        # Determine the decomposition name, defaulting to the metadata if not provided
+        self.decompName = decompName or get_metadata_decomp_name(name, self.fuelDataDir)
+        # Set the directories for the group contribution data, decomposition data, and properties data
+        self.fuelDataGcDir = self.fuelDataDir / "gcData"
+        self.fuelDataDecompDir = self.fuelDataDir / "groupDecompositionData"
+        self.fuelDataPropsDir = self.fuelDataDir / "propertiesData"
+        logger.info(
+            "Legacy property calls (e.g., fuel.Tc) set using the Gani GCM method. To access other\n"
+            "method predictions, use ``fuel.get_gcm_property(method_name, property_name)``."
         )
 
-        self.omega = PintUnits.Quantity(_omega, "")
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # (Mostly) Legacy functionalities for backwards compatibility                     #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Parsed data
+    @cached_property
+    def gc_data(self) -> pd.DataFrame:
+        """GC csv data as a pandas DataFrame."""
+        self.gcxgcFile = file_path(
+            self.fuelDataGcDir,
+            f"{self.name}_init.csv",
+            f"{self.name}.gcxgc.csv",
+        )
+        return pd.read_csv(self.gcxgcFile)
 
-        # V_m (molar liquid volume at 298 K)
-        _vmk = get_row("vmk")
-        _vm: FloatArray = 0.01211 + np.matmul(self.Nij, _vmk)
-        self.Vm_stp = PintUnits.Quantity(_vm, "m^3/kmol").to("m^3/mol")
+    @property
+    def compounds(self) -> list[str]:
+        """Compound names. Shape: (num_compounds,)"""
+        return self.gc_data["Compound"].to_list()
 
-        # C_p,stp (molar specific heat at 298 K)
-        _cpak = get_row("CpAk")
-        _cp_stp: FloatArray = np.matmul(self.Nij, _cpak) - 19.7779
-        self.Cp_stp = PintUnits.Quantity(_cp_stp, "J/(mol*K)")
+    @property
+    def smiles(self) -> list[str]:
+        """Get the list of SMILES strings for the compounds. Shape: (num_compounds,)"""
+        if "SMILES" in self.gc_data.columns:
+            return self.gc_data["SMILES"].to_list()
+        msg = "Required 'SMILES' column missing in gc_data."
+        raise ValueError(msg)
 
-        # Temperature corrections for C_p
-        _cpbk = get_row("CpBk")
-        _cp_b: FloatArray = np.matmul(self.Nij, _cpbk)
-        self.Cp_B = PintUnits.Quantity(_cp_b, "J/(mol*K)")
+    @property
+    def pelephysics_keys(self) -> np.ndarray | None:
+        """PelePhysics keys for the compounds, if present. Shape: (num_compounds,)"""
+        if "PelePhysics Key" in self.gc_data.columns:
+            return np.array(
+                [key.strip() for key in self.gc_data["PelePhysics Key"].to_list()]
+            )
+        return None
 
-        _cpck = get_row("CpCk")
-        _cp_c: FloatArray = np.matmul(self.Nij, _cpck)
-        self.Cp_C = PintUnits.Quantity(_cp_c, "J/(mol*K)")
+    @property
+    def formulas(self) -> list[str]:
+        """Chemical formulas for the compounds. Shape: (num_compounds,)"""
 
-        # L_v,stp (latent heat of vaporization at 298 K)
-        self.Lv_stp = (self.Hv_stp / self.MW).to("J/kg")
+        def _hill_order(atom_counts: dict[str, int]) -> str:
+            atoms = []
+            c = atom_counts.pop("C", None)
+            if c is not None:
+                atoms.append((0, "C", c))
+            h = atom_counts.pop("H", None)
+            if h is not None:
+                atoms.append((1, "H", h))
+            for atom, count in atom_counts.items():
+                atoms.append((2, atom, count))
+            return "".join(f"{s}{c if c > 1 else ''}" for _, s, c in sorted(atoms))
 
-        # Lennard-Jones parameters for diffusion calculations (Tee et al. 1966)
-        _lj_w = self.omega.magnitude
-        _lj_tc = self.Tc.to("K").magnitude
-        _lj_pc = self.Pc.to("atm").magnitude
+        return [_hill_order(counts.copy()) for counts in self.atom_counts]
 
-        _epsilonByKB = (0.7915 + 0.1693 * _lj_w) * _lj_tc
-        self.epsilonByKB = PintUnits.Quantity(_epsilonByKB, "K")
+    @property
+    def Y_0(self) -> np.ndarray:
+        """Normalized initial mass fraction (Y_0) for each compound. Shape: (num_compounds,)"""
+        if "Weight %" in self.gc_data.columns:
+            wts = self.gc_data["Weight %"].to_numpy().flatten().astype(float)
+            return wts / wts.sum()
+        msg = "Initial mass fractions (Y_0) not available: 'Weight %' column missing in gc_data."
+        raise ValueError(msg)
 
-        _sigma = (2.3551 - 0.0874 * _lj_w) * np.power((_lj_tc / _lj_pc), 1.0 / 3)
-        self.sigma = PintUnits.Quantity(_sigma, "angstrom").to("m")
+    # GCM (Group Contribution Method) properties for the compounds
+    @cached_property
+    def gani_decomp(self) -> pd.DataFrame:
+        """Gani decomposition for the compounds. Shape: (num_compounds, num_groups)"""
+        groupDecompFile = file_path(
+            self.fuelDataDecompDir,
+            f"{self.decompName}.csv",
+            f"{self.decompName}.gani.csv",
+        )
+        if not Path(groupDecompFile).exists():
+            msg = f"Gani decomposition file not found: {groupDecompFile}"
+            raise FileNotFoundError(msg)
 
-    # -------------------------------------------------------------------------
-    # Member functions
-    # -------------------------------------------------------------------------
-    def mean_molecular_weight(self, Yi: FloatArray) -> PintScalar:
+        df = pd.read_csv(groupDecompFile, header=0, index_col=0)
+        if df.shape[0] != self.num_compounds:
+            raise ValueError(
+                f"Insufficient mixture description:\n"
+                f"The number of compounds in {groupDecompFile} does not "
+                f"equal the number of compounds in {self.gcxgcFile}."
+            )
+        return df
+
+    @cached_property
+    def gcm_properties(self) -> pd.DataFrame:
+        """Pre-computed GCM properties for the compounds. Shape: (num_properties, num_compounds)"""
+        props = pd.DataFrame(columns=["Method", "Property"] + self.compounds)
+        for gcm in GCMRegistry.methods:
+            props = pd.concat([props, gcm.predict_all(self)], ignore_index=True)
+        return props
+
+    def get_gcm_property(self, method: str, property_name: str) -> PintVector:
         """
-        Calculate the mean molecular weight of the mixture.
+        Get a specific property from the GCM for each compound.
 
-        :param Yi: Mass fractions of each compound.
-        :type Yi: np.ndarray
-        :return: Mean molecular weight of the mixture in kg/mol.
-        :rtype: pint.Quantity[float]
+        :param method: The GCM method to use.
+        :type method: str
+        :param property_name: The name of the property to retrieve.
+        :type property_name: str
+        :return: Array of the requested property for each compound.
+        :rtype: PintVector
         """
-        if np.sum(Yi) != 0:
-            Mbar = 1 / np.sum(Yi / self.MW.to("kg/mol"))
-        else:
-            Mbar = 0.0
-        return PintUnits.Quantity(Mbar, "kg/mol")
+        method = method.lower()
+        if method not in self.gcm_properties["Method"].values:
+            msg = f"Method '{method}' not found in computed GCM properties."
+            raise KeyError(msg)
 
-    def mass2Y(self, mass: PintArray) -> FloatArray:
+        property_name = property_name.lower()
+        if property_name not in self.gcm_properties["Property"].values:
+            msg = f"Property '{property_name}' not found in computed GCM properties."
+            raise KeyError(msg)
+
+        row = self.gcm_properties[
+            (self.gcm_properties["Method"] == method)
+            & (self.gcm_properties["Property"] == property_name)
+        ]
+        # Convert vector of PintQuantities to PintVector
+        row = row[self.compounds].to_numpy().flatten()
+        return PintUnits.Quantity([q.magnitude for q in row], row[0].units)
+
+    ## Legacy Fuel attributes for backward compatibility
+    @cached_property
+    def MW(self) -> PintVector:
+        """Molecular weight for each compound. Shape: (n_compounds,)"""
+        mw = [mol.molecular_weight(m) for m in self.rdkit_mols]
+        return PintUnits.Quantity(mw, "g/mol").to("kg/mol")
+
+    @property
+    def Tc(self) -> PintVector:
+        """Gani critical temperature (K) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Tc").to("K")
+
+    @property
+    def Pc(self) -> PintVector:
+        """Gani critical pressure (Pa) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Pc").to("Pa")
+
+    @property
+    def Vc(self) -> PintVector:
+        """Gani critical volume (m^3/mol) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Vc").to("m^3/mol")
+
+    @property
+    def Tb(self) -> PintVector:
+        """Gani boiling temperature (K) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Tb").to("K")
+
+    @property
+    def Tm(self) -> PintVector:
+        """Gani melting temperature (K) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Tm").to("K")
+
+    @property
+    def Hf(self) -> PintVector:
+        """Gani enthalpy of formation (J/mol) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Hf").to("J/mol")
+
+    @property
+    def Gf(self) -> PintVector:
+        """Gani Gibbs free energy of formation (J/mol) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Gf").to("J/mol")
+
+    @property
+    def Hv_stp(self) -> PintVector:
+        """Gani enthalpy of vaporization at STP (J/mol) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Hv_stp").to("J/mol")
+
+    @property
+    def omega(self) -> PintVector:
+        """Gani acentric factor (dimensionless) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "omega").to("")
+
+    @property
+    def Vm_stp(self) -> PintVector:
+        """Gani molar volume at STP (m^3/mol) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Vm_stp").to("m^3/mol")
+
+    @property
+    def Cp_stp(self) -> PintVector:
+        """Gani heat capacity at STP (J/mol/K) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Cp_stp").to("J/mol/K")
+
+    @property
+    def Cp_B(self) -> PintVector:
+        """Gani heat capacity correction (J/mol/K) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Cp_B").to("J/mol/K")
+
+    @property
+    def Cp_C(self) -> PintVector:
+        """Gani heat capacity correction (J/mol/K) for each compound. Shape: (n_compounds,)"""
+        return self.get_gcm_property("gani", "Cp_C").to("J/mol/K")
+
+    @property
+    def Lv_stp(self) -> PintVector:
+        """Standard latent heat of vaporization for each compound. Shape: (n_compounds,)"""
+        return (self.Hv_stp / self.MW).to("J/kg")
+
+    @property
+    def epsilonByKB(self) -> PintVector:
+        """Epsilon divided by Boltzmann constant (K) for each compound. Shape: (n_compounds,)"""
+        A = PintUnits.Quantity(0.7915, "")
+        eps = (A + 0.1693 * self.omega) * self.Tc
+        return PintUnits.Quantity(eps, "K")
+
+    @property
+    def sigma(self) -> PintVector:
+        """Sigma parameter (m) for each compound. Shape: (n_compounds,)"""
+        w = self.omega.to("").magnitude
+        tc = self.Tc.to("K").magnitude
+        pc = self.Pc.to("atm").magnitude
+        sigma = (2.3551 - 0.0874 * w) * np.power((tc / pc), 1.0 / 3)
+        return PintUnits.Quantity(sigma, "angstrom").to("m")
+
+    # Component classification and informatics
+    @property
+    def num_compounds(self) -> int:
+        """Number of compounds in the fuel mixture."""
+        return len(self.compounds)
+
+    @cached_property
+    def rdkit_mols(self) -> list[Mol]:
+        """RDKit Mol objects for the compounds. Shape: (n_compounds,)"""
+        return [mol.from_smiles(smiles) for smiles in self.smiles]
+
+    @property
+    def hc_type(self) -> StrVector:
+        """Hydrocarbon type for each compound. Shape: (n_compounds,)
+
+        Classification hierarchy:
+            Aromatic > Cyclo-alkane > Alkene > Iso-alkane > n-alkane
         """
-        Calculate the mass fractions from the mass of each component.
+        is_hc = np.array([mol.is_hydrocarbon(m) for m in self.rdkit_mols])
+        hc_type = np.full_like(self.compounds, "n-alkane", dtype=np.str_)
+        hc_type[[mol.has_branched(m) for m in self.rdkit_mols]] = "iso-alkane"
+        hc_type[[mol.has_double_bond(m) for m in self.rdkit_mols]] = "alkene"
+        hc_type[[mol.has_ring(m) for m in self.rdkit_mols]] = "cyclo-alkane"
+        hc_type[[mol.has_aromatic(m) for m in self.rdkit_mols]] = "aromatic"
+        hc_type[~is_hc] = np.nan
+        return hc_type
 
-        :param mass: Mass of each compound.
-        :type mass: np.ndarray
-        :return: Mass fractions of the compounds (shape: num_compounds,).
-        :rtype: np.ndarray
+    @property
+    def fam(self) -> IntVector:
+        """Family classification for each compound. Shape: (n_compounds,)
+
+        Classification mapping:
+            Aromatic     : 1
+            Cyclo-alkane : 2
+            Alkene       : 3
+            Otherwise    : 0
         """
-        mass = mass.to("kg")
-        # Normalize to get group mole fractions
-        total_mass = np.sum(mass)
-        if total_mass != 0:
-            return (mass / total_mass).magnitude
-        else:
-            return np.zeros_like(self.MW.magnitude)
+        fam = np.zeros_like(self.compounds, dtype=np.int64)
+        fam[np.where(self.hc_type == "aromatic")] = 1
+        fam[np.where(self.hc_type == "cyclo-alkane")] = 2
+        fam[np.where(self.hc_type == "alkene")] = 3
+        return fam
 
-    def mass2X(self, mass: PintArray) -> FloatArray:
-        """
-        Calculate the mole fractions from the mass of each component.
+    @property
+    def atom_counts(self) -> list[dict[str, int]]:
+        """Dictionary of atom counts for each compound. Shape: (n_compounds,)"""
+        return [mol.atom_counts(m) for m in self.rdkit_mols]
 
-        :param mass: Mass of each compound.
-        :type mass: pint.Quantity[np.ndarray]
-        :return: Mole fractions of the compounds (shape: num_comps,).
-        :rtype: np.ndarray
-        """
-        # Calculate the number of moles for each compound
-        num_mole = mass.to("kg") / self.MW.to("kg/mol")
-        # Normalize to get group mole fractions
-        total_moles = np.sum(num_mole)
-        if total_moles != 0:
-            return (num_mole / total_moles).magnitude
-        else:
-            return np.zeros_like(self.MW.magnitude)
+    @property
+    def nC(self) -> IntVector:
+        """Number of carbon atoms for each compound. Shape: (n_compounds,)"""
+        return IntVector([count.get("C", 0) for count in self.atom_counts])
 
-    def X2Y(self, Xi: FloatArray) -> FloatArray:
-        """
-        Calculate the mass fractions from the mole fractions of each component.
+    @property
+    def nH(self) -> IntVector:
+        """Number of hydrogen atoms for each compound. Shape: (n_compounds,)"""
+        return IntVector([count.get("H", 0) for count in self.atom_counts])
 
-        :param Xi: Mole fractions of each compound.
-        :type Xi: np.ndarray
-        :return: Mass fractions of the compounds (shape: num_compounds,).
-        :rtype: np.ndarray
-        """
-        # Calculate the mass for each compound
-        mass = Xi * self.MW.to("kg/mol").magnitude
-
-        # Normalize to get group mass fractions
-        total_mass = np.sum(mass)
-        if total_mass != 0:
-            return mass / total_mass
-        else:
-            return np.zeros_like(self.MW.magnitude)
-
-    def Y2X(self, Yi: FloatArray) -> FloatArray:
-        """
-        Calculate the mole fractions from the mass fractions of each component.
-
-        :param Yi: Mass fractions of each compound.
-        :type Yi: np.ndarray
-        :return: Mole fractions of the compounds (shape: num_compounds,).
-        :rtype: np.ndarray
-        """
-        if np.sum(Yi) != 0:
-            return (self.mean_molecular_weight(Yi) * Yi / self.MW).magnitude
-        else:
-            return np.zeros_like(self.MW, dtype=np.float64)
-
-    def molar_liquid_vol(self, T: PintScalar, comp_idx: int | None = None) -> PintArray:
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Component-wise property correlations                                            #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    def molar_liquid_vol(
+        self, T: PintScalar, comp_idx: int | None = None
+    ) -> PintVector:
         """
         Compute molar liquid volume with temperature correction.
 
@@ -507,7 +379,7 @@ class Fuel:
         Vmi = Vm_stp.to("m^3/mol") * np.power(z, phi)
         return Vmi[comp_idx] if comp_idx is not None else Vmi
 
-    def density(self, T: PintScalar, comp_idx: int | None = None) -> PintArray:
+    def density(self, T: PintScalar, comp_idx: int | None = None) -> PintVector:
         """
         Calculate the density of each component at temperature T.
 
@@ -523,7 +395,7 @@ class Fuel:
 
     def viscosity_kinematic(
         self, T: PintScalar, comp_idx: int | None = None
-    ) -> PintArray:
+    ) -> PintVector:
         """
         Calculate the viscosity using Dutt's equation.
 
@@ -548,7 +420,7 @@ class Fuel:
 
     def viscosity_dynamic(
         self, T: PintScalar, comp_idx: int | None = None
-    ) -> PintArray:
+    ) -> PintVector:
         """
         Calculate liquid dynamic viscosity based on droplet temperature and density.
 
@@ -564,7 +436,7 @@ class Fuel:
         mu_i = (self.viscosity_kinematic(T) * self.density(T)).to("Pa*s")
         return mu_i[comp_idx] if comp_idx is not None else mu_i
 
-    def Cp(self, T: PintScalar, comp_idx: int | None = None) -> PintArray:
+    def Cp(self, T: PintScalar, comp_idx: int | None = None) -> PintVector:
         """
         Compute molar specific heat capacity at a given temperature.
 
@@ -575,6 +447,7 @@ class Fuel:
         :return: Molar specific heat capacity in J/mol/K.
         :rtype: np.ndarray
         """
+        T = T.to("K")
         theta = (T - T_STP) / PintUnits.Quantity(700, "K")
 
         Cp_stp = self.Cp_stp
@@ -584,7 +457,7 @@ class Fuel:
         cp = (Cp_stp + Cp_B * theta + Cp_C * theta**2).to("J/(mol*K)")
         return cp[comp_idx] if comp_idx is not None else cp
 
-    def Cl(self, T: PintScalar, comp_idx: int | None = None) -> PintArray:
+    def Cl(self, T: PintScalar, comp_idx: int | None = None) -> PintVector:
         """
         Compute liquid mass specific heat capacity in J/kg/K at a given temperature.
 
@@ -603,7 +476,7 @@ class Fuel:
         T: PintScalar,
         comp_idx: int | None = None,
         correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
-    ) -> PintArray:
+    ) -> PintVector:
         """
         Compute saturated vapor pressure.
 
@@ -658,7 +531,7 @@ class Fuel:
 
     def psat_antoine_coeffs(
         self,
-        Tvals: PintArray | None = None,
+        Tvals: PintVector | None = None,
         units: Literal["mks", "cgs", "bar", "atm", "dyne/cm^2", "Pa"] = "mks",
         correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -719,7 +592,7 @@ class Fuel:
 
     def latent_heat_vaporization(
         self, T: PintScalar, comp_idx: int | None = None
-    ) -> PintArray:
+    ) -> PintVector:
         """
         Calculate latent heat of vaporization adjusted for temperature.
 
@@ -757,7 +630,7 @@ class Fuel:
         epsilonByKB_gas: PintScalar = EpsilonByKB_g,
         MW_gas: PintScalar = MW_g,
         correlation: Literal["Tee", "Wilke"] = "Tee",
-    ) -> PintArray:
+    ) -> PintVector:
         """
         Compute diffusion coefficients using Lennard-Jones parameters.
 
@@ -847,7 +720,7 @@ class Fuel:
         T: PintScalar,
         comp_idx: int | None = None,
         correlation: Literal["Pitzer", "Brock-Bird"] = "Brock-Bird",
-    ) -> PintArray:
+    ) -> PintVector:
         """
         Calculate surface tension of each compound at a given temperature.
 
@@ -895,7 +768,7 @@ class Fuel:
 
     def thermal_conductivity(
         self, T: PintScalar, comp_idx: int | None = None
-    ) -> PintArray:
+    ) -> PintVector:
         """
         Calculate thermal conductivity at a given temperature.
 
@@ -952,8 +825,25 @@ class Fuel:
 
         return tc[comp_idx] if comp_idx is not None else tc
 
-    # --- Mixture functions ---
-    def mixture_density(self, Yi: FloatArray, T: PintScalar) -> PintScalar:
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Mixture property correlations                                                   #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    def mean_molecular_weight(self, Yi: FloatVector) -> PintScalar:
+        """
+        Calculate the mean molecular weight of the mixture.
+
+        :param Yi: Mass fractions of each compound.
+        :type Yi: np.ndarray
+        :return: Mean molecular weight of the mixture in kg/mol.
+        :rtype: PintScalar
+        """
+        if np.sum(Yi) != 0:
+            Mbar = 1 / np.sum(Yi / self.MW.to("kg/mol"))
+        else:
+            Mbar = 0.0
+        return PintUnits.Quantity(Mbar, "kg/mol")
+
+    def mixture_density(self, Yi: FloatVector, T: PintScalar) -> PintScalar:
         """
         Calculate mixture density at a given temperature.
 
@@ -962,7 +852,7 @@ class Fuel:
         :param T: Temperature in Kelvin.
         :type T: PintScalar
         :return: Mixture density in kg/m^3.
-        :rtype: float
+        :rtype: PintScalar
         """
         MW = self.MW.to("kg/mol")
         Vmi = self.molar_liquid_vol(T).to("m^3/mol")
@@ -971,7 +861,7 @@ class Fuel:
 
     def mixture_kinematic_viscosity(
         self,
-        Yi: FloatArray,
+        Yi: FloatVector,
         T: PintScalar,
         correlation: Literal["Kendall-Monroe", "Arrhenius"] = "Kendall-Monroe",
     ) -> PintScalar:
@@ -1007,7 +897,7 @@ class Fuel:
 
     def mixture_dynamic_viscosity(
         self,
-        Yi: FloatArray,
+        Yi: FloatVector,
         T: PintScalar,
         correlation: Literal["Kendall-Monroe", "Arrhenius"] = "Kendall-Monroe",
     ) -> PintScalar:
@@ -1029,7 +919,7 @@ class Fuel:
 
     def mixture_vapor_pressure(
         self,
-        Yi: FloatArray,
+        Yi: FloatVector,
         T: PintScalar,
         correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
     ) -> PintScalar:
@@ -1054,8 +944,8 @@ class Fuel:
 
     def mixture_vapor_pressure_antoine_coeffs(
         self,
-        Yi: FloatArray,
-        Tvals: PintArray | None = None,
+        Yi: FloatVector,
+        Tvals: PintVector | None = None,
         units: Literal["mks", "cgs", "bar", "atm", "dyne/cm^2", "Pa"] = "mks",
         correlation: Literal["Ambrose-Walton", "Lee-Kesler"] = "Lee-Kesler",
     ):
@@ -1113,7 +1003,7 @@ class Fuel:
 
     def mixture_surface_tension(
         self,
-        Yi: FloatArray,
+        Yi: FloatVector,
         T: PintScalar,
         correlation: Literal["Pitzer", "Brock-Bird"] = "Brock-Bird",
     ) -> PintScalar:
@@ -1138,7 +1028,9 @@ class Fuel:
         # Mixture surface tension via arithmetic mean, Poling (12-5.2)
         return mixing_rule(sti, Xi, "arithmetic").to("N/m")
 
-    def mixture_thermal_conductivity(self, Yi: FloatArray, T: PintScalar) -> PintScalar:
+    def mixture_thermal_conductivity(
+        self, Yi: FloatVector, T: PintScalar
+    ) -> PintScalar:
         """
         Calculate thermal conductivity of the mixture.
 
@@ -1151,6 +1043,77 @@ class Fuel:
         """
         tc = self.thermal_conductivity(T)
         return np.power(np.sum(Yi * np.power(tc, -2)), -0.5).to("W/(m*K)")
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Utility functions                                                               #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    def mass2Y(self, mass: PintVector) -> FloatVector:
+        """
+        Calculate the mass fractions from the mass of each component.
+
+        :param mass: Mass of each compound.
+        :type mass: np.ndarray
+        :return: Mass fractions of the compounds (shape: num_compounds,).
+        :rtype: np.ndarray
+        """
+        mass = mass.to("kg")
+        # Normalize to get group mole fractions
+        total_mass = np.sum(mass)
+        if total_mass != 0:
+            return (mass / total_mass).magnitude
+        else:
+            return np.zeros_like(self.MW.magnitude)
+
+    def mass2X(self, mass: PintVector) -> FloatVector:
+        """
+        Calculate the mole fractions from the mass of each component.
+
+        :param mass: Mass of each compound.
+        :type mass: pint.Quantity[np.ndarray]
+        :return: Mole fractions of the compounds (shape: num_comps,).
+        :rtype: np.ndarray
+        """
+        # Calculate the number of moles for each compound
+        num_mole = mass.to("kg") / self.MW.to("kg/mol")
+        # Normalize to get group mole fractions
+        total_moles = np.sum(num_mole)
+        if total_moles != 0:
+            return (num_mole / total_moles).magnitude
+        else:
+            return np.zeros_like(self.MW.magnitude)
+
+    def X2Y(self, Xi: FloatVector) -> FloatVector:
+        """
+        Calculate the mass fractions from the mole fractions of each component.
+
+        :param Xi: Mole fractions of each compound.
+        :type Xi: np.ndarray
+        :return: Mass fractions of the compounds (shape: num_compounds,).
+        :rtype: np.ndarray
+        """
+        # Calculate the mass for each compound
+        mass = Xi * self.MW.to("kg/mol").magnitude
+
+        # Normalize to get group mass fractions
+        total_mass = np.sum(mass)
+        if total_mass != 0:
+            return mass / total_mass
+        else:
+            return np.zeros_like(self.MW.magnitude)
+
+    def Y2X(self, Yi: FloatVector) -> FloatVector:
+        """
+        Calculate the mole fractions from the mass fractions of each component.
+
+        :param Yi: Mass fractions of each compound.
+        :type Yi: np.ndarray
+        :return: Mole fractions of the compounds (shape: num_compounds,).
+        :rtype: np.ndarray
+        """
+        if np.sum(Yi) != 0:
+            return (self.mean_molecular_weight(Yi) * Yi / self.MW).magnitude
+        else:
+            return np.zeros_like(self.MW, dtype=np.float64)
 
 
 __all__ = ["Fuel"]
