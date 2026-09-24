@@ -6,6 +6,7 @@ from rdkit import Chem
 from rdkit.Chem import Descriptors, Mol
 
 
+# Instantiation functions
 def from_smiles(smiles: str) -> Mol:
     """
     Instantiate an RDKit Mol object from a SMILES string.
@@ -15,31 +16,192 @@ def from_smiles(smiles: str) -> Mol:
     :return: RDKit Mol object.
     :rtype: Mol
     """
-    return Chem.MolFromSmiles(smiles)
+    mol = Chem.MolFromSmiles(smiles)
+    mol = Chem.AddHs(mol)
+    return mol
 
 
-def has_aromatic(mol: Mol) -> bool:
+def smiles(mol: Mol) -> str:
     """
-    Check if an RDKit Mol object contains any aromatic atoms.
+    Get the SMILES string representation of an RDKit Mol object.
 
     :param mol: RDKit Mol object.
     :type mol: Mol
-    :return: True if the molecule contains any aromatic atoms, False otherwise.
-    :rtype: bool
+    :return: SMILES string representing the molecule.
+    :rtype: str
     """
-    return any(atom.GetIsAromatic() for atom in mol.GetAtoms())
+    return Chem.MolToSmiles(mol)
 
 
-def has_ring(mol: Mol) -> bool:
+def from_inchi(inchi: str) -> Mol:
     """
-    Check if an RDKit Mol object contains any ring structures.
+    Instantiate an RDKit Mol object from an InChI string.
+
+    :param inchi: InChI string representing the molecule.
+    :type inchi: str
+    :return: RDKit Mol object.
+    :rtype: Mol
+    """
+    mol = Chem.MolFromInchi(inchi, sanitize=False, removeHs=False)
+    mol = Chem.AddHs(mol)
+    return mol
+
+
+def inchi(mol: Mol) -> str:
+    """
+    Get the standard InChI string representation of an RDKit Mol object.
 
     :param mol: RDKit Mol object.
     :type mol: Mol
-    :return: True if the molecule contains any ring structures, False otherwise.
+    :return: InChI string representing the molecule.
+    :rtype: str
+    """
+    return Chem.inchi.MolBlockToInchi(Chem.rdmolfiles.MolToMolBlock(mol))
+
+
+# Structural feature checks
+def is_hydrocarbon(mol: Mol) -> bool:
+    """
+    Check if an RDKit Mol object represents a hydrocarbon.
+
+    :param mol: RDKit Mol object.
+    :type mol: Mol
+    :return: True if the molecule contains only carbon and hydrogen atoms, False otherwise.
     :rtype: bool
     """
-    return any(atom.IsInRing() for atom in mol.GetAtoms())
+    return all(atom.GetSymbol() in {"C", "H"} for atom in mol.GetAtoms())
+
+
+def count_olefins(mol: Mol) -> int:
+    """
+    Count the number of olefins (non-aromatic double bonds) in an RDKit Mol object.
+
+    :param mol: RDKit Mol object.
+    :type mol: Mol
+    :return: Number of olefins in the molecule.
+    :rtype: int
+    """
+    count = 0
+    for bond in mol.GetBonds():
+        if (
+            bond.GetBondType() == Chem.rdchem.BondType.DOUBLE
+            and not bond.GetIsAromatic()
+        ):
+            count += 1
+    return count
+
+
+def count_aliphatic_rings(mol: Mol) -> int:
+    """
+    Count the number of aliphatic (non-aromatic) rings in an RDKit Mol object.
+
+    :param mol: RDKit Mol object.
+    :type mol: Mol
+    :return: Number of aliphatic rings in the molecule.
+    :rtype: int
+    """
+    count = 0
+    for ring in mol.GetRingInfo().AtomRings():
+        if not all(mol.GetAtomWithIdx(idx).GetIsAromatic() for idx in ring):
+            count += 1
+    return count
+
+
+def count_aromatic_rings(mol: Mol) -> int:
+    """
+    Count the number of aromatic rings in an RDKit Mol object.
+
+    :param mol: RDKit Mol object.
+    :type mol: Mol
+    :return: Number of aromatic rings in the molecule.
+    :rtype: int
+    """
+    count = 0
+    for ring in mol.GetRingInfo().AtomRings():
+        if all(mol.GetAtomWithIdx(idx).GetIsAromatic() for idx in ring):
+            count += 1
+    return count
+
+
+def count_aliphatic_branches(mol: Mol) -> int:
+    """
+    Count the number of aliphatic branches in an RDKit Mol object.
+
+    :param mol: RDKit Mol object.
+    :type mol: Mol
+    :return: Number of aliphatic branches in the molecule.
+    :rtype: int
+    """
+    count = 0
+    mol = Chem.RemoveAllHs(mol)
+    for atom in mol.GetAtoms():
+        if atom.GetDegree() > 2 and not atom.GetIsAromatic():
+            for neighbor in atom.GetNeighbors():
+                if not neighbor.IsInRing():
+                    count += 1
+                    break
+    return count
+
+
+def count_aromatic_branches(mol: Mol) -> int:
+    """
+    Count the number of aromatic branches in an RDKit Mol object.
+
+    :param mol: RDKit Mol object.
+    :type mol: Mol
+    :return: Number of aromatic branches in the molecule.
+    :rtype: int
+    """
+    count = 0
+    mol = Chem.RemoveAllHs(mol)
+    for a in mol.GetAtoms():
+        if a.GetDegree() > 2 and a.GetIsAromatic():
+            for neighbor in a.GetNeighbors():
+                if not neighbor.IsInRing():
+                    count += 1
+                    break
+    return count
+
+
+def has_alkyl_aromatic(mol: Mol) -> bool:
+    """
+    Check if an RDKit Mol object contains any alkane-branched aromatic atoms.
+
+    :param mol: RDKit Mol object.
+    :type mol: Mol
+    :return: True if the molecule contains any alkane-branched aromatic atoms, False otherwise.
+    :rtype: bool
+    """
+    substruc = Chem.MolFromSmarts("[a]-[A&!R]")
+    return mol.HasSubstructMatch(substruc)
+
+
+def has_cyclo_aromatic(mol: Mol) -> bool:
+    """
+    Check if an RDKit Mol object contains any cyclo-aromatic atoms.
+
+    :param mol: RDKit Mol object.
+    :type mol: Mol
+    :return: True if the molecule contains any cyclo-aromatic atoms, False otherwise.
+    :rtype: bool
+    """
+    substruc = Chem.MolFromSmarts("[a]-@[A&R]")
+    return mol.HasSubstructMatch(substruc)
+
+
+def has_bicyclic_aromatics(mol: Mol) -> bool:
+    """
+    Check if an RDKit Mol object contains any bicyclic aromatic atoms.
+
+    :param mol: RDKit Mol object.
+    :type mol: Mol
+    :return: True if the molecule contains any bicyclic aromatic atoms, False otherwise.
+    :rtype: bool
+    """
+    substruc = Chem.MolFromSmarts(
+        "[$([a;R2]1:[a]:[a]:[a]:[a]1)][$([a;R2]2:[a]:[a]:[a]:[a]2)]"
+    )
+    return mol.HasSubstructMatch(substruc)
 
 
 def has_branched(mol: Mol) -> bool:
@@ -69,18 +231,6 @@ def has_double_bond(mol: Mol) -> bool:
     )
 
 
-def is_hydrocarbon(mol: Mol) -> bool:
-    """
-    Check if an RDKit Mol object represents a hydrocarbon.
-
-    :param mol: RDKit Mol object.
-    :type mol: Mol
-    :return: True if the molecule contains only carbon and hydrogen atoms, False otherwise.
-    :rtype: bool
-    """
-    return all(atom.GetSymbol() in {"C", "H"} for atom in mol.GetAtoms())
-
-
 def atom_counts(mol: Mol) -> dict[str, int]:
     """
     Count the number of each type of atom in an RDKit Mol object.
@@ -94,6 +244,7 @@ def atom_counts(mol: Mol) -> dict[str, int]:
     return Counter(atom.GetSymbol() for atom in mol.GetAtoms())
 
 
+# Molecular property calculations
 def molecular_weight(mol: Mol, *, exact: bool = False) -> float:
     """
     Calculate the molecular weight of an RDKit Mol object.

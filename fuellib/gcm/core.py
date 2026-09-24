@@ -33,9 +33,10 @@ class GCM(BaseModel):
     name: str
     property_fns: dict[str, PropertyProtocol]
 
-    def register_property(self, function: PropertyProtocol) -> None:
+    def register_property(self, function: PropertyProtocol) -> PropertyProtocol:
         """Register a new property implementation for this GCM."""
         self.property_fns[function.__name__.lower()] = function
+        return function
 
     def list_property_fns(self) -> list[str]:
         """List the names of all registered property functions."""

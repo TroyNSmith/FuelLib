@@ -1,4 +1,8 @@
-"""Constantinou-Gani Group Contribution Method."""
+"""Constantinou-Gani Group Contribution Method.
+
+Includes extended group contribution parameters for predicting thermophysical
+properties that were not included in the original Constantinou-Gani method.
+"""
 
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
@@ -175,3 +179,52 @@ def Cp_C(fuel: "Fuel") -> PintVector:
     _check_compatible_dims(cpcj, nij)
     cpci: FloatVector = np.matmul(nij, cpcj)
     return PintUnits.Quantity(cpci, "J/(mol*K)")
+
+
+@gani_gcm.register_property
+def rd_A(fuel: "Fuel") -> PintVector:
+    """Predict the rd_A parameter for the given fuel's components.
+
+    :meta public: Ruzicka-Domalski liquid heat-capacity coefficient A.
+    """
+    nij = _get_decomp(fuel)
+    rd_aj = _get_row("rd_A")
+    _check_compatible_dims(rd_aj, nij)
+    rd_ai: FloatVector = np.matmul(nij, rd_aj)
+    return PintUnits.Quantity(rd_ai, "dimensionless")
+
+
+@gani_gcm.register_property
+def rd_B(fuel: "Fuel") -> PintVector:
+    """Predict the rd_B parameter for the given fuel's components.
+
+    :meta public: Ruzicka-Domalski liquid heat-capacity coefficient B.
+    """
+    nij = _get_decomp(fuel)
+    rd_bj = _get_row("rd_B")
+    _check_compatible_dims(rd_bj, nij)
+    rd_bi: FloatVector = np.matmul(nij, rd_bj)
+    return PintUnits.Quantity(rd_bi, "K^-1")
+
+
+@gani_gcm.register_property
+def rd_D(fuel: "Fuel") -> PintVector:
+    """Predict the rd_D parameter for the given fuel's components.
+
+    :meta public: Ruzicka-Domalski liquid heat-capacity coefficient D.
+    """
+    nij = _get_decomp(fuel)
+    rd_dj = _get_row("rd_D")
+    _check_compatible_dims(rd_dj, nij)
+    rd_di: FloatVector = np.matmul(nij, rd_dj)
+    return PintUnits.Quantity(rd_di, "K^-2")
+
+
+@gani_gcm.register_property
+def alibakhshi_phi(fuel: "Fuel") -> PintVector:
+    """Predict the Alibakhshi phi parameter for the given fuel's components."""
+    nij = _get_decomp(fuel)
+    phi_j = _get_row("alibakhshi_phi")
+    _check_compatible_dims(phi_j, nij)
+    phi_i: FloatVector = np.matmul(nij, phi_j)
+    return PintUnits.Quantity(phi_i, "K")

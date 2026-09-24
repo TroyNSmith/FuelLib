@@ -1,1 +1,0 @@
-"""Component-wise correlation methods."""

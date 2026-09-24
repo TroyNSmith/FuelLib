@@ -1,5 +1,5 @@
-Compound,Reference Compound,SMILES,PelePhysics Key,Weight %
-Toluene,toluene,CC1=CC=CC=C1,C6H5CH3,0.17
+Bin,Reference Compound,SMILES,PelePhysics Key,Weight %
+C1-Benzene,toluene,CC1=CC=CC=C1,C6H5CH3,0.17
 C2-Benzene,ethyl benzene ,CCC1=CC=CC=C1,C6H5C2H5,1.1
 C3-Benzene,propyl benzene,CCCC1=CC=CC=C1,C6H5C3H7,2.97
 C4-Benzene,butyl benzene,CCCCC1=CC=CC=C1,C6H5C4H9,3.32
@@ -62,7 +62,7 @@ C11-Dicycloparaffin,2-methyldecalin,CC1CCC2CCCCC2C1,METHYLDECALIN-2,1.52
 C12-Dicycloparaffin,2-ethyldecalin,CCC1CCC2CCCCC2C1,ETHYLDECALIN-2,1.57
 C13-Dicycloparaffin,2-propyldecalin,CCCC1CCC2CCCCC2C1,PROPYLDECALIN-2,1.21
 C14-Dicycloparaffin,2-butyldecalin,CCCCC1CCC2CCCCC2C1,BUTYLDECALIN-2,0.81
-C15-Dicycloparaffin,2-pentyldacalin,CCCCCC1CCC2CCCCC2C1,PENTYLDECALIN-2,0.27
+C15-Dicycloparaffin,2-pentyldecalin,CCCCCC1CCC2CCCCC2C1,PENTYLDECALIN-2,0.27
 C10-Tricycloparaffin,C1CC2C(C1)C1CCCC21,C1CC2C(C1)C1CCCC21,TRICYCLO-C10,0.0
 C11-Tricycloparaffin,C1CC2CC3CCCC3C2C1,C1CC2CC3CCCC3C2C1,TRICYCLO-C11,0.16
 C12-Tricycloparaffin,C1CC2CC3CCCC3CC2C1,C1CC2CC3CCCC3CC2C1,TRICYCLO-C12,0.0

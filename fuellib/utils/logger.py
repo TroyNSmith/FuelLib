@@ -13,7 +13,7 @@ class CustomFormatter(logging.Formatter):
     bold = "\x1b[1m"
     reset = "\x1b[0m"
 
-    date_fmt = "%Y-%m-%d %H:%M:%S"
+    date_fmt = "%H:%M:%S"
 
     def format(self, record: logging.LogRecord) -> str:
         log_color = {
@@ -26,7 +26,7 @@ class CustomFormatter(logging.Formatter):
 
         # Apply color formatting dynamically to the levelname or the whole message
         formatter = logging.Formatter(
-            f"%(asctime)s - {log_color}%(levelname)-8s{self.reset}\n%(message)s\n",
+            f"[%(asctime)s] {log_color}%(levelname)s:{self.reset} %(message)s\n",
             datefmt=self.date_fmt,
         )
         return formatter.format(record)
@@ -44,7 +44,7 @@ console_handler.setFormatter(CustomFormatter())
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(message)s \n",
+    format="%(asctime)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[file_handler, console_handler],
 )

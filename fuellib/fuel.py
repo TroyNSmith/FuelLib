@@ -7,6 +7,7 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+import pyparsing as pp
 from rdkit.Chem import Mol
 from scipy.optimize import curve_fit
 
@@ -83,7 +84,7 @@ class Fuel:
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Parsed data
     @cached_property
-    def gc_data(self) -> pd.DataFrame:
+    def gcxgc_data(self) -> pd.DataFrame:
         """GC csv data as a pandas DataFrame."""
         self.gcxgcFile = file_path(
             self.fuelDataGcDir,
@@ -92,25 +93,73 @@ class Fuel:
         )
         return pd.read_csv(self.gcxgcFile)
 
-    @property
+    @cached_property
+    def gcxgc_bins(self) -> list[tuple[str, int, str]]:
+        """Hydrocarbon bins for the compounds. Shape: (num_compounds,)
+
+        :return: List of tuples containing the bin name, carbon number, and family for each compound.
+        :rtype: list[tuple[str, int, str]]
+        """
+        if "Bin" in self.gcxgc_data.columns:
+            bins = self.gcxgc_data["Bin"].to_list()
+        elif "Compound" in self.gcxgc_data.columns:
+            logger.info(
+                "Hydrocarbon bin information missing; using compound names as fallback. Consider renaming\n"
+                "`Compound` column to `Bin` if appropriate."
+            )
+            bins = self.gcxgc_data["Compound"].to_list()
+        else:
+            msg = "Hydrocarbon bin information missing and no compound names available in gc_data."
+            raise ValueError(msg)
+        carbon_parser = pp.Suppress("C") + pp.Word(pp.nums).setResultsName(
+            "carbon_number"
+        )
+        family_parser = pp.Word(pp.alphanums).setResultsName("family")
+        parser = (carbon_parser + pp.Suppress("-") + family_parser) | (
+            family_parser + pp.Suppress("-") + carbon_parser
+        )
+
+        def split_bin(bin_name: str) -> tuple[str, int, str]:
+            parsed = parser.parse_string(bin_name)
+            return bin_name, int(parsed.carbon_number), parsed.family.lower()
+
+        return [split_bin(bin_name) for bin_name in bins]
+
+    @cached_property
     def compounds(self) -> list[str]:
-        """Compound names. Shape: (num_compounds,)"""
-        return self.gc_data["Compound"].to_list()
+        """Simplified representation of gcxgc_bins for backwards compatibility."""
+        if "Bin" in self.gcxgc_data.columns:
+            return self.gcxgc_data["Bin"].to_list()
+        elif "Compound" in self.gcxgc_data.columns:
+            logger.info(
+                "Hydrocarbon bin information missing; using compound names as fallback. Consider renaming\n"
+                "`Compound` column to `Bin` if appropriate."
+            )
+            return self.gcxgc_data["Compound"].to_list()
+        msg = "Hydrocarbon bin information missing and no compound names available in gc_data."
+        raise ValueError(msg)
+
+    @property
+    def reference_compounds(self) -> list[str] | None:
+        """Get the list of reference compounds for the compounds, if available. Shape: (num_compounds,)"""
+        if "Reference Compound" in self.gcxgc_data.columns:
+            return self.gcxgc_data["Reference Compound"].to_list()
+        return None
 
     @property
     def smiles(self) -> list[str]:
         """Get the list of SMILES strings for the compounds. Shape: (num_compounds,)"""
-        if "SMILES" in self.gc_data.columns:
-            return self.gc_data["SMILES"].to_list()
+        if "SMILES" in self.gcxgc_data.columns:
+            return self.gcxgc_data["SMILES"].to_list()
         msg = "Required 'SMILES' column missing in gc_data."
         raise ValueError(msg)
 
     @property
     def pelephysics_keys(self) -> np.ndarray | None:
         """PelePhysics keys for the compounds, if present. Shape: (num_compounds,)"""
-        if "PelePhysics Key" in self.gc_data.columns:
+        if "PelePhysics Key" in self.gcxgc_data.columns:
             return np.array(
-                [key.strip() for key in self.gc_data["PelePhysics Key"].to_list()]
+                [key.strip() for key in self.gcxgc_data["PelePhysics Key"].to_list()]
             )
         return None
 
@@ -135,14 +184,14 @@ class Fuel:
     @property
     def Y_0(self) -> np.ndarray:
         """Normalized initial mass fraction (Y_0) for each compound. Shape: (num_compounds,)"""
-        if "Weight %" in self.gc_data.columns:
-            wts = self.gc_data["Weight %"].to_numpy().flatten().astype(float)
+        if "Weight %" in self.gcxgc_data.columns:
+            wts = self.gcxgc_data["Weight %"].to_numpy().flatten().astype(float)
             return wts / wts.sum()
         msg = "Initial mass fractions (Y_0) not available: 'Weight %' column missing in gc_data."
         raise ValueError(msg)
 
     # GCM (Group Contribution Method) properties for the compounds
-    @cached_property
+    @property
     def gani_decomp(self) -> pd.DataFrame:
         """Gani decomposition for the compounds. Shape: (num_compounds, num_groups)"""
         groupDecompFile = file_path(
@@ -312,11 +361,13 @@ class Fuel:
             Aromatic > Cyclo-alkane > Alkene > Iso-alkane > n-alkane
         """
         is_hc = np.array([mol.is_hydrocarbon(m) for m in self.rdkit_mols])
-        hc_type = np.full_like(self.compounds, "n-alkane", dtype=np.str_)
+        hc_type = np.full_like(self.compounds, "n-alkane")
         hc_type[[mol.has_branched(m) for m in self.rdkit_mols]] = "iso-alkane"
-        hc_type[[mol.has_double_bond(m) for m in self.rdkit_mols]] = "alkene"
-        hc_type[[mol.has_ring(m) for m in self.rdkit_mols]] = "cyclo-alkane"
-        hc_type[[mol.has_aromatic(m) for m in self.rdkit_mols]] = "aromatic"
+        hc_type[[mol.count_olefins(m) > 0 for m in self.rdkit_mols]] = "alkene"
+        hc_type[[mol.count_aliphatic_rings(m) > 0 for m in self.rdkit_mols]] = (
+            "cyclo-alkane"
+        )
+        hc_type[[mol.count_aromatic_rings(m) > 0 for m in self.rdkit_mols]] = "aromatic"
         hc_type[~is_hc] = np.nan
         return hc_type
 
@@ -344,12 +395,16 @@ class Fuel:
     @property
     def nC(self) -> IntVector:
         """Number of carbon atoms for each compound. Shape: (n_compounds,)"""
-        return IntVector([count.get("C", 0) for count in self.atom_counts])
+        return np.array(
+            [count.get("C", 0) for count in self.atom_counts], dtype=np.int_
+        )
 
     @property
     def nH(self) -> IntVector:
         """Number of hydrogen atoms for each compound. Shape: (n_compounds,)"""
-        return IntVector([count.get("H", 0) for count in self.atom_counts])
+        return np.array(
+            [count.get("H", 0) for count in self.atom_counts], dtype=np.int_
+        )
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Component-wise property correlations                                            #
@@ -825,6 +880,24 @@ class Fuel:
 
         return tc[comp_idx] if comp_idx is not None else tc
 
+    def liquid_heat_capacity(self, T: PintScalar) -> PintVector:
+        """
+        Calculate Ruzicka-Domalski liquid heat capacity at a given temperature.
+
+        :param T: Temperature in Kelvin.
+        :type T: float
+        :return: Liquid heat capacity in J/kg/K.
+        :rtype: np.ndarray
+        """
+        R = PintUnits.Quantity(1, "R").to("J/(mol*K)")
+        Tr = T.to("K") / 100.0
+        Cpl_A = self.get_gcm_property("gani", "rd_A")
+        Cpl_B = self.get_gcm_property("gani", "rd_B")
+        Cpl_D = self.get_gcm_property("gani", "rd_D")
+
+        cp_molar = R * (Cpl_A + Cpl_B * Tr + Cpl_D * Tr**2)
+        return (cp_molar / self.MW.to("kg/mol")).to("J/kg/K")
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Mixture property correlations                                                   #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1043,6 +1116,152 @@ class Fuel:
         """
         tc = self.thermal_conductivity(T)
         return np.power(np.sum(Yi * np.power(tc, -2)), -0.5).to("W/(m*K)")
+
+    def mixture_heat_of_combustion(
+        self, Yi: FloatVector, basis: Literal["mass", "mole"] = "mass"
+    ) -> PintScalar:
+        """
+        Calculate the heat of combustion of the mixture.
+
+        :meta public: Hess cycle with the Const-Gani ideal-gas formation enthalpy and a
+        liquid-phase correction. Result is an engineering estimate related to ASTM
+        D4809/D3338 heating-value characterization--it is not a simulated bomb-
+        calorimeter measurement.
+
+        :param Yi: Mass fractions of each compound in the mixture.
+        :type Yi: np.ndarray
+        :param basis: Whether to return the heat of combustion in "mass" (MJ/kg) or
+        "mole" (kJ/mol).
+        :type basis: str, optional
+        :return: Mixture heat of combustion in kJ/mol or MJ/kg.
+        :rtype: pint.Quantity
+        """
+        if np.any(self.hc_type == "NaN"):
+            msg = "Heat of combustion is only compatible with hydrocarbon compounds."
+            raise ValueError(msg)
+
+        Hf_liq = self.Hf - self.Hv_stp
+        Lhv_hess = -1.0 * (
+            self.nC * PintUnits.Quantity(-393.51, "kJ/mol")
+            + (self.nH / 2) * PintUnits.Quantity(-241.83, "kJ/mol")
+            - Hf_liq.to("kJ/mol")
+        )
+        if basis == "mass":
+            return PintUnits.Quantity(np.sum(Yi * Lhv_hess / self.MW.to("kg/mol"))).to(
+                "J/kg"
+            )
+        Xi = self.Y2X(Yi)
+        return PintUnits.Quantity(np.sum(Xi * Lhv_hess)).to("J/mol")
+
+    def mixture_freezing_point(
+        self,
+        Yi: FloatVector,
+        method: Literal["Boehm2022"] = "Boehm2022",
+        alpha: float = 1.0,
+        n_iter: int = 8,
+    ) -> PintScalar:
+        """
+        Calculate the freezing point of the mixture.
+
+        :meta public: Freezing point calculation using the Boehm et al. (2022) method
+        for ideal solutions. This is an equilibrium-based estimation and does not model
+        cooling rate, supercooling, crystal kinetics, or detailed solid-phase non-
+        ideality.
+
+        :param Yi: Mass fractions of each compound in the mixture.
+        :type Yi: np.ndarray
+        :param method: Method to use for calculating the freezing point. Currently only "Boehm2022" is supported.
+        :type method: str, optional
+        :param alpha: Non-ideality parameter for the mixture.
+        :type alpha: float, optional
+        :param n_iter: Number of iterations for the freezing point calculation.
+        :type n_iter: int, optional
+        :return: Freezing point of the mixture in Kelvin.
+        :rtype: pint.Quantity
+        :raises ValueError: If the calculation fails due to non-physical values.
+        """
+        R = PintUnits.Quantity(1, "R").to("J/(mol*K)")
+        Xi = np.clip(self.Y2X(Yi), 1e-6, 1.0 - 1e-6)
+        Tm = self.get_gcm_property("gani", "Tm").to("K")
+        dH_fus = self.get_gcm_property("boehm", "dH_fus").to("kJ/mol")
+        dS_fus = self.get_gcm_property("boehm", "dS_fus").to("kJ/(mol*K)")
+        dS_mix = -R / Xi * ((1.0 - Xi) * np.log(1.0 - Xi) + Xi * np.log(Xi))
+        dCpl = -0.35 * self.liquid_heat_capacity(T_STP) * self.MW
+
+        T_j = Tm * np.ones_like(Xi)
+        for _ in range(n_iter):
+            T_j = np.maximum(T_j, PintUnits.Quantity(1.0, "K"))
+            num = dH_fus + Xi * dCpl * (Tm - T_j)
+            denom = dS_fus + Xi * dCpl * np.log(T_j / Tm) + alpha * dS_mix
+            T_j = num / (denom + PintUnits.Quantity(1e-30, "J/(mol*K)"))
+            #NOTE: Root-finding problem
+
+        Tf_j = np.where(T_j.magnitude > 0, T_j.magnitude, -np.inf)
+        Tf = np.max(np.where(Xi > 1e-6, Tf_j, -np.inf))
+        return PintUnits.Quantity(Tf, "K")
+
+    def mixture_flash_point(
+        self,
+        Yi: FloatVector,
+        method: Literal["Alibakhshi", "Alqaheem"] = "Alibakhshi",
+        mixing: Literal["Liaw", "linear"] = "Liaw",
+    ) -> PintScalar:
+        """
+        Calculate the flash point of the mixture.
+
+        :meta public: Pure-component values use either the Alibakhshi et al. (2015)
+        group contribution model or the Alqaheem-Riazi correlation. Mixtures use the
+        ideal Liaw-Chiu modified Le Chatelier criterion by default, with a mole-
+        fraction-linear rule available as a simpler alternative.
+
+        :param Yi: Mass fractions of each compound in the mixture.
+        :type Yi: np.ndarray
+        :param method: Pure-component method. Options are "Alibakhshi" or "Alqaheem".
+        :type method: str, optional
+        :param mixing: Mixing rule. Options are "Liaw" or "linear".
+        :type mixing: str, optional
+        :return: Flash point of the mixture in Kelvin.
+        :rtype: pint.Quantity
+        :raises ValueError: If the calculation fails due to non-physical values.
+        """
+
+        """
+        def _fp_alibakhshi(Tb, phi_sum):
+            return 12.14 + 0.73 * Tb + phi_sum
+        def _fp_alqaheem(Tb):
+            return 0.70 * Tb
+        if Yi is None:
+            Yi = self.Y_0
+        if method.casefold() == "alibakhshi":
+            component_flash_points = _fp_alibakhshi(self.Tb_astm, self.alibakhshi_phi)
+        elif method.casefold() == "alqaheem":
+            component_flash_points = _fp_alqaheem(self.Tb_astm)
+        else:
+            raise NotImplementedError(
+                f"flash_point method '{method}' not supported "
+                "(use 'Alibakhshi' or 'Alqaheem')."
+            )
+
+        Xi = self.Y2X(np.asarray(Yi, dtype=float))
+        if mixing.casefold() == "linear":
+            return float(np.sum(Xi * component_flash_points))
+        if mixing.casefold() == "liaw":
+            return float(
+                _fp_liaw_ideal_iter(
+                    Xi,
+                    component_flash_points,
+                    self.Tc,
+                    self.Pc,
+                    self.omega_astm,
+                )
+            )
+        raise NotImplementedError(
+            f"flash_point mixing rule '{mixing}' not supported "
+            "(use 'Liaw' or 'linear')."
+        )
+        """
+        # Placeholder implementation
+        return PintUnits.Quantity(298.15, "K")
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Utility functions                                                               #

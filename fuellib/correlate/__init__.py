@@ -1,5 +1,5 @@
 """Correlation methods."""
 
-from . import component, mixture
+from . import components, mixture
 
-__all__ = ["component", "mixture"]
+__all__ = ["components", "mixture"]

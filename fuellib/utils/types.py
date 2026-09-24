@@ -16,3 +16,4 @@ StrVector = np.ndarray[tuple[NumCompounds,], np.dtype[np.str_]]
 # Pint
 PintScalar = pint.Quantity[float]
 PintVector = pint.Quantity[FloatVector]
+PintMatrix = pint.Quantity[FloatMatrix]
