@@ -21,7 +21,7 @@ jobs:
           python-version: '3.12'
       - run: |
           python -m pip install --upgrade pip
-          pip install -e '.[dev]'
+          pip install -e . --group lint
       - run: ruff format .
       - run: ruff check . --fix
       - run: ty check .
@@ -55,7 +55,7 @@ jobs:
           python-version: '3.12'
       - run: |
           python -m pip install --upgrade pip
-          pip install -e '.[dev]'
+          pip install -e . --group test
       - run: python -m pytest
   
   Accuracy:
@@ -79,8 +79,8 @@ jobs:
           python-version: '3.12'
       - run: |
           python -m pip install --upgrade pip
-          pip install -e .
-      - run: python tests/test_api.py -v
+          pip install -e . --group test
+      - run: python -m pytest tests/test_api.py -v
   
   Utilities:
     runs-on: ubuntu-latest
@@ -91,7 +91,7 @@ jobs:
           python-version: '3.12'
       - run: |
           python -m pip install --upgrade pip
-          pip install -e '.[dev]'
+          pip install -e . --group test
       - run: python -m pytest tests/test_cli_utilities.py -v
   
   Hydrocarbon-Identification:
@@ -103,7 +103,7 @@ jobs:
           python-version: '3.12'
       - run: |
           python -m pip install --upgrade pip
-          pip install -e '.[dev]'
+          pip install -e . --group test
       - run: python -m pytest tests/test_hc_identification.py -v -s
   
   Exporting-Scripts:
@@ -115,6 +115,6 @@ jobs:
           python-version: '3.12'
       - run: |
           python -m pip install --upgrade pip
-          pip install -e .
-      - run: python tests/test_exporters.py
+          pip install -e . --group test
+      - run: python -m pytest tests/test_exporters.py
   

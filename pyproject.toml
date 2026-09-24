@@ -36,20 +36,40 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
+inverse = [
+    "astropy>=8.0.1",
+    "jax>=0.11.2",
+    "unxt>=2.0.4",
+]
+
+[dependency-groups]
+test = [
     "pytest>=6.0",
+    "pytest-cov>=7.1.0",
+]
+docs = [
     "sphinx>=4.0",
     "sphinx-rtd-theme>=1.0",
     "sphinxcontrib-bibtex>=2.0",
     "sphinx-autodoc-typehints>=3.13.7",
+]
+lint = [
     "codespell>=2.2.0",
+    "import-linter>=2.13",
     "ruff>=0.16.4",
     "ty>=0.0.74",
-    "pytest-cov>=7.1.0",
-    "lefthook>=2.1.11",
-    "import-linter>=2.13",
-    "uv>=0.12.6",
+]
+workflow = [
     "keepachangelog>=2.0.0",
+    "lefthook>=2.1.11",
+    "uv>=0.12.6",
+]
+dev = [
+    "fuellib[inverse]",
+    { include-group = "test" },
+    { include-group = "docs" },
+    { include-group = "lint" },
+    { include-group = "workflow" },    
 ]
 
 [project.scripts]
