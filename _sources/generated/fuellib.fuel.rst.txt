@@ -1,0 +1,12 @@
+﻿fuellib.fuel
+============
+
+.. automodule:: fuellib.fuel
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Fuel
+   
