@@ -25,6 +25,7 @@ jobs:
       - run: ruff format --check
       - run: ruff check
       - run: ty check
+      - run: lint-imports
   
   Codespell:
     needs: Formatting

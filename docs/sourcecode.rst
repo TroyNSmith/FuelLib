@@ -18,6 +18,10 @@ FuelLib File Organization
     - ``utility.py``: utility functions for mixture properties and droplet calculations
     - ``_data_locator.py``: internal module for locating and validating fuel data directories
 
+    - **correlate**: subpackage with correlation functions used to compute temperature-dependent properties of components and mixtures
+        - ``components.py``: correlations for individual component properties (molar liquid volume, density, kinematic viscosity, latent heat of vaporization)
+        - ``mixture.py``: correlations for mixture-level properties
+
     - **gcm**: subpackage implementing the Group Contribution Method (GCM) abstraction
         - ``core.py``: ``GCM``/``GCMRegistry`` classes for registering and evaluating property functions
         - ``gani.py``: Constantinou-Gani (and extended) property implementations registered against the ``gani`` GCM
@@ -85,6 +89,8 @@ Click on links below for the full auto-documentation of the API.
     fuellib.convert
     fuellib.utility
     fuellib.utils.types
+    fuellib.correlate.components
+    fuellib.correlate.mixture
     fuellib.gcm.core
     fuellib.gcm.gani
     fuellib.rdk.mol

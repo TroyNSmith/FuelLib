@@ -19,6 +19,7 @@ from ._data_locator import (
     get_gcmtable_dir,
     get_metadata_decomp_name,
 )
+from .correlate import components
 from .constants import EpsilonByKB_gas, MW_gas, Sigma_gas
 from .gcm import GCMRegistry
 from .rdk import mol
@@ -445,16 +446,8 @@ class Fuel:
         Returns:
             Density of each compound in kg/m^3.
         """
-        T = T.to("K")
-        if comp_idx is None:
-            MW = self.MW
-            Vm = self.molar_liquid_vol(T)
-        else:
-            MW = self.MW[comp_idx]
-            Vm = self.molar_liquid_vol(T, comp_idx=comp_idx)
-
-        rho = (MW / Vm).to("kg/m^3")
-        return rho
+        rho = components.density(self, T)
+        return rho[comp_idx] if comp_idx is not None else rho
 
     def viscosity_kinematic(
         self, T: types.Quantity0D, comp_idx: int | None = None
@@ -471,18 +464,8 @@ class Fuel:
         Returns:
             Viscosity of each component in m^2/s.
         """
-        # Convert temperature to Celsius
-        T: float = T.to("celsius").magnitude
-        if comp_idx is None:
-            Tb = self.Tb.to("celsius").magnitude
-        else:
-            Tb = self.Tb[comp_idx].to("celsius").magnitude
-
-        # RHS of Dutt's equation (4.23) in Viscosity of Liquids
-        rhs = -3.0171 + (442.78 + 1.6452 * Tb) / (T + 239 - 0.19 * Tb)
-        nu_i = Units.Quantity(np.exp(rhs), "mm^2/s").to("m^2/s")
-
-        return nu_i
+        nu_i = components.kinematic_viscosity(self, T)
+        return nu_i[comp_idx] if comp_idx is not None else nu_i
 
     def viscosity_dynamic(
         self, T: types.Quantity0D, comp_idx: int | None = None
@@ -498,10 +481,8 @@ class Fuel:
         Returns:
             Dynamic viscosity in Pa*s.
         """
-        nu_i = self.viscosity_kinematic(T, comp_idx=comp_idx)
-        rho_i = self.density(T, comp_idx=comp_idx)
-        mu_i = (nu_i * rho_i).to("Pa*s")
-        return mu_i
+        mu_i = components.dynamic_viscosity(self, T)
+        return mu_i[comp_idx] if comp_idx is not None else mu_i
 
     def Cp(self, T: types.Quantity0D, comp_idx: int | None = None) -> types.Quantity1D:
         """Compute molar specific heat capacity at a given temperature.
@@ -513,20 +494,8 @@ class Fuel:
         Returns:
             Molar specific heat capacity in J/mol/K.
         """
-        T = T.to("K")
-        theta = (T - Units.Quantity(298, "K")) / Units.Quantity(700, "K")
-        if comp_idx is None:
-            Cp_stp = self.Cp_stp
-            Cp_B = self.Cp_B
-            Cp_C = self.Cp_C
-        else:
-            Cp_stp = self.Cp_stp[comp_idx]
-            Cp_B = self.Cp_B[comp_idx]
-            Cp_C = self.Cp_C[comp_idx]
-
-        cp = Cp_stp + Cp_B * theta + Cp_C * theta**2
-
-        return cp.to("J/(mol*K)")
+        cp = components.molar_specific_heat_capacity(self, T)
+        return cp[comp_idx] if comp_idx is not None else cp
 
     def Cl(self, T: types.Quantity0D, comp_idx: int | None = None) -> types.Quantity1D:
         """Compute liquid mass specific heat capacity in J/kg/K at a given temperature.
@@ -538,13 +507,8 @@ class Fuel:
         Returns:
             Mass specific heat capacity in J/kg/K.
         """
-        T = T.to("K")
-        if comp_idx is None:
-            MW = self.MW
-        else:
-            MW = self.MW[comp_idx]
-        cp = self.Cp(T, comp_idx=comp_idx)
-        return (cp / MW).to("J/(kg*K)")
+        cl = components.liquid_mass_specific_heat_capacity(self, T)
+        return cl[comp_idx] if comp_idx is not None else cl
 
     def psat(
         self,
@@ -564,48 +528,8 @@ class Fuel:
         Returns:
             Saturated vapor pressure in Pa.
         """
-        T = T.to("K")
-        if comp_idx is None:
-            Tr = T / self.Tc
-            Pc = self.Pc
-            omega = self.omega
-        else:
-            Tr = T / self.Tc[comp_idx]
-            Pc = self.Pc[comp_idx]
-            omega = self.omega[comp_idx]
-
-        if correlation.casefold() == "Ambrose-Walton".casefold():
-            # May cause trouble at high temperatures
-            tau = 1 - Tr
-            f0 = (
-                -5.97616 * tau
-                + 1.29874 * tau**1.5
-                - 0.60394 * tau**2.5
-                - 1.06841 * tau**5.0
-            )
-            f0 /= Tr
-            f1 = (
-                -5.03365 * tau
-                + 1.11505 * tau**1.5
-                - 5.41217 * tau**2.5
-                - 7.46628 * tau**5.0
-            )
-            f1 /= Tr
-            f2 = (
-                -0.64771 * tau
-                + 2.41539 * tau**1.5
-                - 4.26979 * tau**2.5
-                - 3.25259 * tau**5.0
-            )
-            f2 /= Tr
-            rhs = np.exp(f0 + omega * f1 + omega**2 * f2)
-
-        else:  # Default correlation is Lee-Kesler
-            f0 = 5.92714 - (6.09648 / Tr) - 1.28862 * np.log(Tr) + 0.169347 * (Tr**6)
-            f1 = 15.2518 - (15.6875 / Tr) - 13.4721 * np.log(Tr) + 0.43577 * (Tr**6)
-            rhs = np.exp(f0 + omega * f1)
-
-        return (Pc * rhs).to("Pa")
+        psat = components.saturated_vapor_pressure(self, T, correlation=correlation)
+        return psat[comp_idx] if comp_idx is not None else psat
 
     def psat_antoine_coeffs(
         self,
@@ -710,29 +634,8 @@ class Fuel:
         Returns:
             Molar liquid volume in m^3/mol.
         """
-        Tstp = Units.Quantity(298, "K")
-        T = T.to("K")
-        if comp_idx is None:
-            Tc = self.Tc.to("K")
-            omega = self.omega
-            Vm_stp = self.Vm_stp
-        else:
-            Tc = self.Tc[comp_idx : comp_idx + 1]
-            omega = self.omega[comp_idx : comp_idx + 1]
-            Vm_stp = self.Vm_stp[comp_idx : comp_idx + 1]
-        phi = np.zeros_like(Tc.magnitude)
-        for i in range(len(Tc)):
-            if T > Tc[i]:
-                phi[i] = -((1 - (Tstp / Tc[i])) ** (2.0 / 7.0))
-            else:
-                phi[i] = (1 - (T / Tc[i])) ** (2.0 / 7.0) - (1 - (Tstp / Tc[i])) ** (
-                    2.0 / 7.0
-                )
-        z = 0.29056 - 0.08775 * omega
-        Vmi = Vm_stp * z**phi
-        if comp_idx is not None:
-            Vmi = Vmi[0]
-        return Vmi
+        mlv = components.molar_liquid_volume(self, T)
+        return mlv[comp_idx] if comp_idx is not None else mlv
 
     def latent_heat_vaporization(
         self, T: types.Quantity0D, comp_idx: int | None = None
@@ -746,31 +649,8 @@ class Fuel:
         Returns:
             Latent heat of vaporization in J/kg.
         """
-        T = T.to("K")
-
-        if comp_idx is None:
-            Tc = self.Tc.to("K")
-            Tb = self.Tb.to("K")
-            Lv_stp = self.Lv_stp.to("J/kg")
-        else:
-            Tc = self.Tc[comp_idx : comp_idx + 1].to("K")
-            Tb = self.Tb[comp_idx : comp_idx + 1].to("K")
-            Lv_stp = self.Lv_stp[comp_idx : comp_idx + 1].to("J/kg")
-
-        # Reduced temperatures
-        Tr = T / Tc
-        Trb = Tb / Tc
-
-        Lvi = Units.Quantity(np.zeros_like(Tc.magnitude), "J/kg")
-        for i in range(len(Tc)):
-            if T > Tc[i]:
-                Lvi.magnitude[i] = 0.0
-            else:
-                Lvi[i] = Lv_stp[i] * (((1.0 - Tr[i]) / (1.0 - Trb[i])) ** 0.38)
-
-        if comp_idx is not None:
-            Lvi = Lvi[0]
-        return Lvi
+        Lv = components.latent_heat_vaporization(self, T)
+        return Lv[comp_idx] if comp_idx is not None else Lv
 
     def diffusion_coeff(
         self,
