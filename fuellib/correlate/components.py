@@ -88,7 +88,7 @@ def dynamic_viscosity_dutt(fuel: "Fuel", T: types.Quantity0D) -> types.Quantity1
     return (nu_i * rho_i).to("Pa*s")
 
 
-def molar_specific_heat(fuel: "Fuel", T: types.Quantity0D) -> types.Quantity1D:
+def molar_specific_heat_capacity(fuel: "Fuel", T: types.Quantity0D) -> types.Quantity1D:
     """Compute molar specific heat capacity at a given temperature.
 
     Args:
@@ -104,7 +104,9 @@ def molar_specific_heat(fuel: "Fuel", T: types.Quantity0D) -> types.Quantity1D:
     return cp.to("J/(mol*K)")
 
 
-def liquid_mass_specific_heat(fuel: "Fuel", T: types.Quantity0D) -> types.Quantity1D:
+def liquid_mass_specific_heat_capacity(
+    fuel: "Fuel", T: types.Quantity0D
+) -> types.Quantity1D:
     """Compute liquid mass specific heat capacity in J/kg/K at a given temperature.
 
     Args:
@@ -116,8 +118,30 @@ def liquid_mass_specific_heat(fuel: "Fuel", T: types.Quantity0D) -> types.Quanti
     """
     T = T.to("K")
     MW = fuel.MW
-    cp = molar_specific_heat(fuel, T)
+    cp = molar_specific_heat_capacity(fuel, T)
     return (cp / MW).to("J/(kg*K)")
+
+
+def liquid_mass_specific_heat_capacity_ruzicka(
+    fuel: "Fuel", T: types.Quantity0D
+) -> types.Quantity1D:
+    """Compute liquid mass specific heat capacity in J/kg/K at a given temperature.
+
+    Uses the Ruzicka-Domalski correlation.
+
+    Args:
+        fuel: Fuel object.
+        T: Temperature to compute property.
+
+    Returns:
+        Mass specific heat capacity in J/kg/K.
+    """
+    Tr = T.to("K") / 100.0
+    rd_a = fuel.get_property("gani", "rd_A").to("")
+    rd_b = fuel.get_property("gani", "rd_B").to("K^-1")
+    rd_d = fuel.get_property("gani", "rd_D").to("K^-2")
+    cp_molar = constants.gas_constant * (rd_a + rd_b * Tr + rd_d * Tr**2)
+    return (cp_molar / fuel.MW).to("J/(kg*K)")
 
 
 def saturated_vapor_pressure(
@@ -487,22 +511,50 @@ def thermal_conductivity_latini(
     return Units.Quantity(tc, "W/(m*K)")
 
 
-def freeze_point_boehm(
-    fuel: "Fuel",
-) -> types.Quantity1D:
-    """Calculate the freeze point of each compound using the Boehm method.
+def flash_point_alqaheem(fuel: "Fuel") -> types.Quantity1D:
+    """Calculate flash points using the Alqaheem method.
 
     Args:
         fuel: Fuel object.
 
     Returns:
-        Freeze point in K.
+        Mixture flash point in K.
     """
-    Tc = fuel.Tc.to("K").magnitude
-    Pc = fuel.Pc.to("Pa").magnitude
-    omega = fuel.omega.magnitude
+    Tb = fuel.get_property("gani", "Tb").to("K")
+    return 0.70 * Tb
 
-    Pc = Pc * 1e-5  # convert from Pa to bar
-    Tfp = Tc * (0.567 + 1.15 * omega) * (1 - np.log(Pc) / 10)
 
-    return Units.Quantity(Tfp, "K")
+def flash_point_alibashki(fuel: "Fuel") -> types.Quantity1D:
+    """Calculate flash points using the Alibashki method.
+
+    Args:
+        fuel: Fuel object.
+
+    Returns:
+        Mixture flash point in K.
+    """
+    Tb = fuel.get_property("gani", "Tb").to("K")
+    phi = fuel.get_property("gani", "alibakhshi_phi").to("K")
+    return Units.Quantity(12.14, "K") + 0.73 * Tb + phi
+
+
+def lower_heating_value(fuel: "Fuel") -> types.Quantity1D:
+    """Calculate component lower heating values from a Hess cycle.
+
+    Uses heat of formation and heat of vaporization derived from the Constantinou-Gani
+    GCM.
+
+    Args:
+        fuel: Fuel object.
+
+    Returns:
+        Lower heating values of the components in J/mol.
+    """
+    dH_form_co2 = Units.Quantity(-393.51, "kJ/mol")  # At 298.15 K
+    dH_form_h2o = Units.Quantity(-241.83, "kJ/mol")  # At 298.15 K
+    Hf = fuel.get_property("gani", "Hf").to("J/mol")
+    Hv_stp = fuel.get_property("gani", "Hv_stp").to("J/mol")
+    Hf_liq = Hf - Hv_stp
+    nC = np.array(fuel.nC)
+    nH = np.array(fuel.nH)
+    return nC * dH_form_co2 + 0.5 * nH * dH_form_h2o - Hf_liq

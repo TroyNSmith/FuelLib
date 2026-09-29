@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
+from scipy.optimize import root
 
 from ..utils import Units, types
 
@@ -156,9 +157,85 @@ def mass_fractions_to_mole_fractions(
     return Units.Quantity(Xi, "dimensionless")
 
 
+def _psat_lee_kesler(
+    T: types.Array1D | float,
+    Tc: types.Array1D,
+    Pc: types.Array1D,
+    omega: types.Array1D,
+) -> types.Array1D:
+    """Lee-Kesler saturated vapor pressure for each compound.
+
+    Args:
+        T: Temperature in K.
+        Tc: Critical temperature of each compound in K.
+        Pc: Critical pressure of each compound.
+        omega: Acentric factor of each compound.
+
+    Returns:
+        Saturated vapor pressure (units follow whatever `Pc` is given in).
+    """
+    Tr = T / Tc
+    f0 = 5.92714 - (6.09648 / Tr) - 1.28862 * np.log(Tr) + 0.169347 * (Tr**6)
+    f1 = 15.2518 - (15.6875 / Tr) - 13.4721 * np.log(Tr) + 0.43577 * (Tr**6)
+    return Pc * np.exp(f0 + omega * f1)
+
+
+def liaw_chiu_flash_point(
+    Xi: types.Array1D,
+    Tf_i: types.Array1D,
+    Tc: types.Array1D,
+    Pc: types.Array1D,
+    omega: types.Array1D,
+) -> float:
+    """Solve the ideal Liaw-Chiu mixture flash-point criterion.
+
+    Solves for the mixture flash point T such that
+    sum(Xi * psat(T) / psat(Tf_i)) = 1, where psat is evaluated with the
+    Lee-Kesler correlation for each compound at its own critical properties.
+    A scipy root finder is used in place of the fixed-point iteration used
+    in the original reference implementation.
+
+    Args:
+        Xi: Mole fractions of each compound in the mixture.
+        Tf_i: Flash point of each compound in K.
+        Tc: Critical temperature of each compound in K.
+        Pc: Critical pressure of each compound.
+        omega: Acentric factor of each compound.
+
+    Returns:
+        Mixture flash point in K.
+
+    Raises:
+        RuntimeError: If the root finder fails to converge.
+    """
+    psat_ref = _psat_lee_kesler(Tf_i, Tc, Pc, omega)
+
+    def residual(T: types.Array1D) -> types.Array1D:
+        """Residual of the ideal Liaw-Chiu mixture flash-point criterion.
+
+        Args:
+            T: Candidate mixture flash point in K.
+
+        Returns:
+            Residual of the flash-point criterion.
+        """
+        psat_T = _psat_lee_kesler(T[0], Tc, Pc, omega)
+        return np.array([np.sum(Xi * psat_T / psat_ref) - 1.0])
+
+    T0 = np.sum(Xi * Tf_i)
+    sol = root(residual, [T0])
+    if not sol.success:
+        raise RuntimeError(
+            f"Flash point root-finding failed to converge: {sol.message}"
+        )
+
+    return sol.x[0]
+
+
 __all__ = [
     "arithmetic_mixing_rule",
     "geometric_mixing_rule",
+    "liaw_chiu_flash_point",
     "mass_fractions_to_mole_fractions",
     "mass_to_mass_fractions",
     "mass_to_mole_fractions",

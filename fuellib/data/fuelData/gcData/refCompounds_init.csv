@@ -1,0 +1,90 @@
+﻿GCxGC Bin,SMILES,Reference Compound,PelePhysics Key,Weight %
+Toluene,CC1=CC=CC=C1,toluene,C6H5CH3 ,1
+C2-Benzene,CCC1=CC=CC=C1,ethyl benzene ,C6H5C2H5 ,1
+C3-Benzene,CCCC1=CC=CC=C1,propyl benzene,C6H5C3H7,1
+C4-Benzene,CCCCC1=CC=CC=C1,butyl benzene,C6H5C4H9,1
+C5-Benzene,CCCCCC1=CC=CC=C1,pentyl benzene,C6H5C5H11,1
+C6-Benzene,CCCCCCC1=CC=CC=C1,hexyl benzene,C6H5C6H13,1
+C7-Benzene,CCCCCCCC1=CC=CC=C1,heptyl benzene,C6H5C7H15,1
+C8-Benzene,CCCCCCCCC1=CC=CC=C1,octyl benzene,C6H5C8H17,1
+C9-Benzene,CCCCCCCCCC1=CC=CC=C1,nonyl benzene,C6H5C9H19,1
+C10-Benzene,CCCCCCCCCCC1=CC=CC=C1,decyl benzene,C6H5C10H21,1
+Diaromatic-C10,C1=CC2=CC=CC=C2C=C1,naphthalene,NAPH,1
+Diaromatic-C11,CC1=CC2=CC=CC=C2C=C1,1-methyl naphthalene,METHYLNAPH-1,1
+Diaromatic-C12,CCC1=CC2=CC=CC=C2C=C1,1-ethyl naphthalene,ETHYLNAPH-1,1
+Diaromatic-C13,CCCC1=CC2=CC=CC=C2C=C1,1-propyl naphthalene,PROPYLNAPH-1,1
+Diaromatic-C14,CCCCC1=CC2=CC=CC=C2C=C1,1-butyl naphthalene,BUTYLNAPH-1,1
+Cycloaromatic-C09,C1CC2=CC=CC=C2C1,indane,INDANE,1
+Cycloaromatic-C10,C1CCC2=CC=CC=C2C1,tetralin,TETRA,1
+Cycloaromatic-C11,CC1CCC2=CC=CC=C2C1,2-methyl tetralin,METHYLTETRA-2,1
+Cycloaromatic-C12,CCC1CCC2=CC=CC=C2C1,2-ethly tetralin,ETHYLTETRA-2,1
+Cycloaromatic-C13,CCCC1CCC2=CC=CC=C2C1,2-propyl tetralin,PROPYLTETRA-2,1
+Cycloaromatic-C14,CCCCC1CCC2=CC=CC=C2C1,2-butyl tetralin,BUTYLTETRA-2,1
+Cycloaromatic-C15,CCCCCC1CCC2=CC=CC=C2C1,2-pentyl tetralin,PENTYLTETRA-2,1
+C07-Isoparaffin,CC(C)CCCC,2-methyl hexane,C7H16-2,1
+C08-Isoparaffin,CC(C)CCCCC,2-methyl heptane,C8H18-2 ,1
+C09-Isoparaffin,CC(C)CCCCCC,2-methyl octane,C9H20-2,1
+C10-Isoparaffin,CC(C)CCCCCCC,2-methyl nonane,C10H22-2,1
+C11-Isoparaffin,CC(C)CCCCCCCC,2-methyl decane,C11H24-2,1
+C12-Isoparaffin,CC(C)CCCCCCCCC,2-methyl undecane,C12H26-2,1
+C13-Isoparaffin,CC(C)CCCCCCCCCC,2-methyl dodecane,C13H28-2,1
+C14-Isoparaffin,CC(C)CCCCCCCCCCC,2-methyl tridecane,C14H30-2,1
+C15-Isoparaffin,CC(C)CCCCCCCCCCCC,2-methyl tetradecane,C15H32-2,1
+C16-Isoparaffin,CC(C)CCCCCCCCCCCCC,2-methyl pentadecane,C16H34-2,1
+C17-Isoparaffin,CC(C)CCCCCCCCCCCCCC,2-methyl hexadecane,C17H36-2,1
+C18-Isoparaffin,CC(C)CCCCCCCCCCCCCCC,2-methyl heptadecane,C18H38-2,1
+C19-Isoparaffin,CC(C)CCCCCCCCCCCCCCCC,2-methyl octadecane,C19H40-2,1
+C20-Isoparaffin,CC(C)CCCCCCCCCCCCCCCCC,2-methyl nonadecane,C20H42-2,1
+C21-Isoparaffin,CC(C)CCCCCCCCCCCCCCCCCC,2-methyl icosane,C21H44-2,1
+C22-Isoparaffin,CC(C)CCCCCCCCCCCCCCCCCCC,2-methyl henicosane,C22H46-2,1
+C23-Isoparaffin,CC(C)CCCCCCCCCCCCCCCCCCCC,2-methyl docosane,C23H48-2,1
+C24-Isoparaffin,CC(C)CCCCCCCCCCCCCCCCCCCCC,2-methyl tricosane,C24H50-2,1
+n-C07,CCCCCCC,n-heptane,NC7H16,1
+n-C08,CCCCCCCC,n-octane,NC8H18,1
+n-C09,CCCCCCCCC,n-nonane,NC9H20,1
+n-C10,CCCCCCCCCC,n-decane,NC10H22,1
+n-C11,CCCCCCCCCCC,n-undecane,NC11H24,1
+n-C12,CCCCCCCCCCCC,n-dodecane,NC12H26,1
+n-C13,CCCCCCCCCCCCC,n-tridecane,NC13H28,1
+n-C14,CCCCCCCCCCCCCC,n-tetradecane,NC14H30,1
+n-C15,CCCCCCCCCCCCCCC,n-pentadecane,NC15H32,1
+n-C16,CCCCCCCCCCCCCCCC,n-hexadecane,NC16H34,1
+n-C17,CCCCCCCCCCCCCCCCC,n-heptadecane,NC17H36,1
+n-C18,CCCCCCCCCCCCCCCCCC,n-octadecane,NC18H38,1
+n-C19,CCCCCCCCCCCCCCCCCCC,n-nonadecane,NC19H40,1
+n-C20,CCCCCCCCCCCCCCCCCCCC,n-icosane,NC20H42,1
+n-C21,CCCCCCCCCCCCCCCCCCCCC,n-henicosane,NC21H44,1
+n-C22,CCCCCCCCCCCCCCCCCCCCCC,n-docosane,NC22H46,1
+n-C23,CCCCCCCCCCCCCCCCCCCCCCC,n-tricosane,NC23H48,1
+C07-Monocycloparaffin,CC1CCCCC1,methyl cyclohexane,C6H11CH3,1
+C08-Monocycloparaffin,CCC1CCCCC1,ethyl cyclohexane,C6H11C2H5,1
+C09-Monocycloparaffin,CCCC1CCCCC1,propyl cyclohexane,C6H11C3H7,1
+C10-Monocycloparaffin,CCCCC1CCCCC1,butyl cyclohexane,C6H11C4H9,1
+C11-Monocycloparaffin,CCCCCC1CCCCC1,pentyl cyclohexane,C6H11C5H11,1
+C12-Monocycloparaffin,CCCCCCC1CCCCC1,hexyl cyclohexane,C6H11C6H13,1
+C13-Monocycloparaffin,CCCCCCCC1CCCCC1,heptyl cyclohexane,C6H11C7H15,1
+C14-Monocycloparaffin,CCCCCCCCC1CCCCC1,octyl cyclohexane,C6H11C8H17,1
+C15-Monocycloparaffin,CCCCCCCCCC1CCCCC1,nonyl cyclohexane,C6H11C9H19,1
+C16-Monocycloparaffin,CCCCCCCCCCC1CCCCC1,decyl cyclohexane,C6H11C10H21,1
+C17-Monocycloparaffin,CCCCCCCCCCCC1CCCCC1,undecyl cyclohexane,C6H11C11H23,1
+C18-Monocycloparaffin,CCCCCCCCCCCCC1CCCCC1,dodecyl cyclohexane,C6H11C12H25,1
+C19-Monocycloparaffin,CCCCCCCCCCCCCC1CCCCC1,tridecyl cyclohexane,C6H11C13H27,1
+C08-Dicycloparaffin,C1CC2CCCC2C1,Octahydropentalene,OHPEN,1
+C09-Dicycloparaffin,C1CCC2CCCC2C1,Hydrindane,HYDRIND,1
+C10-Dicycloparaffin,C1CCC2CCCCC2C1,Decalin,DECALIN,1
+C11-Dicycloparaffin,CC1CCC2CCCCC2C1,2-methyldecalin,METHYLDECALIN-2,1
+C12-Dicycloparaffin,CCC1CCC2CCCCC2C1,2-ethyldecalin,ETHYLDECALIN-2,1
+C13-Dicycloparaffin,CCCC1CCC2CCCCC2C1,2-propyldecalin,PROPYLDECALIN-2,1
+C14-Dicycloparaffin,CCCCC1CCC2CCCCC2C1,2-butyldecalin,BUTYLDECALIN-2,1
+C15-Dicycloparaffin,CCCCCC1CCC2CCCCC2C1,2-pentyldecalin,PENTYLDECALIN-2,1
+C16-Dicycloparaffin,CCCCCCC1CCC2CCCCC2C1,2-hexyldecalin,HEXYLDECALIN-2,1
+C17-Dicycloparaffin,CCCCCCCC1CCC2CCCCC2C1,2-heptyldecalin,HEPTYLDECALIN-2,1
+C10-Tricycloparaffin,C1CC2C(C1)C1CCCC21,C1CC2C(C1)C1CCCC21,TRICYCLO-C10,1
+C11-Tricycloparaffin,C1CC2CC3CCCC3C2C1,C1CC2CC3CCCC3C2C1,TRICYCLO-C11,1
+C12-Tricycloparaffin,C1CC2CC3CCCC3CC2C1,C1CC2CC3CCCC3CC2C1,TRICYCLO-C12,1
+C13-Tricycloparaffin,C1CCC2C(C1)CC1CCCCC12,C1CCC2C(C1)CC1CCCCC12,TRICYCLO-C13,1
+C14-Tricycloparaffin,C1CCC2CC3CCCCC3CC2C1,C1CCC2CC3CCCCC3CC2C1,TRICYCLO-C14,1
+C10-Alkene,C=CCCCCCCCC,1-decene,DECENE-1,1
+C12-Alkene,C=CCCCCCCCCCC,1-dodecene,DODECENE-1,1
+C14-Alkene,C=CCCCCCCCCCCCC,1-tetradecene,TETRADECENE-1,1
+C16-Alkene,C=CCCCCCCCCCCCCCC,1-hexadecene,HEXADECENE-1,1

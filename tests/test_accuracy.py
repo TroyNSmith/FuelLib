@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 import pandas as pd
-from get_pred_and_data import get_pred_and_data
+from get_pred_and_data import get_pred_and_data, get_pred_and_data_compound
 
 from fuellib.utils import Units
 from fuellib import Fuel
@@ -120,6 +120,94 @@ class CompTestCase(unittest.TestCase):
                     )
 
         print(f"\n{passed_checks}/{total_checks} fuel-property checks passed")
+
+    def test_compound_accuracy(self):
+        """Compare MAPE of PR vs. stored baseline for compound-specific properties."""
+        fuel_name = "refCompounds"
+        prop_names = ["Tb", "Tm", "omega"]
+        prop_width = max(len(p) for p in prop_names)
+
+        total_checks = 0
+        passed_checks = 0
+
+        print(f"\n\n{BLUE}Compound Accuracy Regression Check via MAPE:{STOP}")
+
+        baseline_file = os.path.join(TESTS_BASELINE_DIR, f"{fuel_name}.csv")
+        df_base = pd.read_csv(baseline_file)
+        print(f"\n{BOLD}{fuel_name}:{STOP}\n")
+
+        for prop in prop_names:
+            with self.subTest(fuel=fuel_name, prop=prop):
+                total_checks += 1
+
+                base_props = Units.Quantity(
+                    df_base[prop].iloc[1:].to_numpy(dtype=float),
+                    df_base[prop].iloc[0],
+                )
+
+                # Current model predictions and experimental reference data.
+                # Predictions are returned for every compound, but only
+                # compounds with experimental data are used for the MAPE check.
+                _, data, pred = get_pred_and_data_compound(fuel_name, prop)
+
+                self.assertEqual(
+                    len(data),
+                    len(base_props),
+                    msg=(
+                        f"{fuel_name} / {prop}: baseline compound count does not "
+                        "match current compound count."
+                    ),
+                )
+
+                valid_idxs = (
+                    ~np.isnan(data)
+                    & np.isfinite(pred.magnitude)
+                    & np.isfinite(base_props.magnitude)
+                )
+                data = data[valid_idxs]
+                pred = pred[valid_idxs]
+                base_props = base_props[valid_idxs]
+
+                mape_base = np.mean(np.abs(data - base_props) / np.abs(data)) * 100
+                mape = np.mean(np.abs(data - pred) / np.abs(data)) * 100
+
+                # Regression check: MAPE must not exceed Baseline.
+                # np.isclose handles tiny floating-point noise when values
+                # are numerically equal but differ at machine precision.
+                regression_ok = (mape <= mape_base) or np.isclose(mape, mape_base)
+
+                if regression_ok:
+                    passed_checks += 1
+                    print(
+                        f"  {GREEN}"
+                        f"✓ {prop:<{prop_width}}"
+                        f"{STOP}"
+                        f"\n    Baseline   = {mape_base.magnitude:8.4f}%"
+                        f"\n    New        = {mape.magnitude:8.4f}%"
+                        f"\n    Difference = {mape.magnitude - mape_base.magnitude:8.4f}%"
+                        "\n"
+                    )
+                else:
+                    print(
+                        f"  {RED}"
+                        f"✗ {prop:<{prop_width}}"
+                        f"{STOP}"
+                        f"\n    Baseline   = {mape_base.magnitude:8.4f}%"
+                        f"\n    New        = {mape.magnitude:8.4f}%"
+                        f"\n    Difference = {mape.magnitude - mape_base.magnitude:8.4f}%"
+                        "\n"
+                    )
+
+                self.assertTrue(
+                    regression_ok,
+                    msg=(
+                        f"{fuel_name} / {prop}: MAPE regressed from "
+                        f"{mape_base.magnitude:.4f}% (baseline) to "
+                        f"{mape.magnitude:.4f}%."
+                    ),
+                )
+
+        print(f"\n{passed_checks}/{total_checks} compound-property checks passed")
 
 
 class TestFuelMWAccuracy:

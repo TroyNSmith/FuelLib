@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, root
 
 from .. import constants
 from ..utils import Units, types
@@ -287,3 +287,190 @@ def thermal_conductivity_latini(
     tci = components.thermal_conductivity_latini(fuel, T).to("W/(m*K)").magnitude
     tc = np.sum(Yi.magnitude * tci ** (-2)) ** (-0.5)
     return Units.Quantity(tc, "W/(m*K)")
+
+
+def freeze_point_boehm(
+    fuel: "Fuel",
+    Yi: types.Quantity1D | None = None,
+    *,
+    alpha: float = 1.0,
+) -> types.Quantity0D:
+    """Calculate the freeze point of the mixture using the Boehm method.
+
+    Solves the solid-liquid equilibrium model of Boehm et al. (2022),
+    equation 21, for every compound using its mole fraction in the mixture,
+    and returns the highest candidate temperature, which marks the first
+    crystal to form on cooling. A scipy root finder is used in place of the
+    fixed-point iteration used in the original reference implementation.
+
+    Args:
+        fuel: Fuel object.
+        Yi: Mass fractions of each compound in the mixture.
+            Defaults to `fuel.Y_0` (initial mass fractions).
+        alpha: Scaling applied to the ideal mixing-entropy term.
+            Defaults to 1.0 (classical ideal-solution entropy term).
+
+    Returns:
+        Mixture freeze point in K.
+
+    Raises:
+        RuntimeError: If the root finder fails to converge.
+    """
+    Yi = Yi if Yi is not None else fuel.Y_0
+    Xi = (
+        helpers.mass_fractions_to_mole_fractions(fuel, Yi).to("dimensionless").magnitude
+    )
+
+    R = constants.gas_constant.to("J/(mol*K)")
+    # NOTE: Tm should be from ASTM, not Gani.
+    Tm = fuel.get_property("gani", "Tm").to("K")
+    dS_fus = fuel.get_property("boehm", "dS_fus").to("J/(mol*K)")
+    dH_fus = Tm * dS_fus
+    dCp = (
+        -0.35
+        * components.liquid_mass_specific_heat_capacity_ruzicka(
+            fuel, Units.Quantity(298.15, "K")
+        )
+        * fuel.MW
+    ).to("J/(mol*K)")
+
+    # Ideal mixing entropy for each compound at its mole fraction in the
+    # mixture. This is the only composition-dependent term in the model.
+    Xi_safe = np.clip(Xi, 1e-6, 1.0 - 1e-6)
+    dS_mix = (
+        -R
+        / Xi_safe
+        * ((1.0 - Xi_safe) * np.log(1.0 - Xi_safe) + Xi_safe * np.log(Xi_safe))
+    )
+
+    Tm_mag = Tm.magnitude
+    dH_fus_mag = dH_fus.magnitude
+    dS_fus_mag = dS_fus.magnitude
+    dCp_mag = dCp.magnitude
+    dS_mix_mag = dS_mix.magnitude
+
+    def residual(T: types.Array1D) -> types.Array1D:
+        """Residual of Boehm et al. (2022), equation 21, for each compound.
+
+        Args:
+            T: Candidate freeze temperature of each compound in K.
+
+        Returns:
+            Residual of equation 21 for each compound.
+        """
+        T_safe = np.maximum(T, 1.0)
+        lhs = T_safe * (
+            dS_fus_mag
+            + Xi_safe * dCp_mag * np.log(T_safe / Tm_mag)
+            + alpha * dS_mix_mag
+        )
+        rhs = dH_fus_mag + Xi_safe * dCp_mag * (Tm_mag - T_safe)
+        return lhs - rhs
+
+    sol = root(residual, Tm_mag)
+    if not sol.success:
+        raise RuntimeError(
+            f"Freeze point root-finding failed to converge: {sol.message}"
+        )
+
+    # Mark non-physical (non-positive or non-finite) solutions as -inf, and
+    # only let compounds actually present in the mixture (Xi > 1e-6) set the
+    # freeze point, matching the reference implementation's convention.
+    T_candidates = np.where(np.isfinite(sol.x) & (sol.x > 0), sol.x, -np.inf)
+    T_freeze = np.max(np.where(Xi > 1e-6, T_candidates, -np.inf))
+
+    return Units.Quantity(T_freeze, "K")
+
+
+def flash_point_alqaheem(
+    fuel: "Fuel",
+    Yi: types.Quantity1D | None = None,
+    *,
+    mixing_rule: Literal["linear", "Liaw"] = "Liaw",
+) -> types.Quantity0D:
+    """Calculate the flash point of the mixture using the Alqaheem method.
+
+    Args:
+        fuel: Fuel object.
+        Yi: Mass fractions of each compound in the mixture.
+            Defaults to `fuel.Y_0` (initial mass fractions).
+        mixing_rule: Mixing rule to use.
+            Defaults to "Liaw".
+
+    Returns:
+        Mixture flash point in K.
+    """
+    Yi = Yi if Yi is not None else fuel.Y_0
+    T_fpi = components.flash_point_alqaheem(fuel)
+    if mixing_rule.casefold() == "linear".casefold():
+        return np.sum(Yi * T_fpi)
+
+    # Liaw-Chiu mixing rule: solve for the mixture flash point T such that
+    # sum(Xi * psat(T) / psat(Tf_i)) = 1, where psat is evaluated with the
+    # Lee-Kesler correlation for each compound at its own critical properties.
+    Xi = (
+        helpers.mass_fractions_to_mole_fractions(fuel, Yi).to("dimensionless").magnitude
+    )
+    Tc = fuel.Tc.to("K").magnitude
+    Pc = fuel.Pc.magnitude
+    omega = fuel.omega.magnitude
+    Tf_i = T_fpi.to("K").magnitude
+
+    T_flash = helpers.liaw_chiu_flash_point(Xi, Tf_i, Tc, Pc, omega)
+    return Units.Quantity(T_flash, "K")
+
+
+def flash_point_alibashki(
+    fuel: "Fuel",
+    Yi: types.Quantity1D | None = None,
+    *,
+    mixing_rule: Literal["linear", "Liaw"] = "Liaw",
+) -> types.Quantity0D:
+    """Calculate the flash point of the mixture using the Alibashki method.
+
+    Args:
+        fuel: Fuel object.
+        Yi: Mass fractions of each compound in the mixture.
+            Defaults to `fuel.Y_0` (initial mass fractions).
+        mixing_rule: Mixing rule to use.
+            Defaults to "Liaw".
+
+    Returns:
+        Mixture flash point in K.
+    """
+    Yi = Yi if Yi is not None else fuel.Y_0
+    T_fpi = components.flash_point_alibashki(fuel)
+    if mixing_rule.casefold() == "linear".casefold():
+        return np.sum(Yi * T_fpi)
+
+    # Liaw-Chiu mixing rule: solve for the mixture flash point T such that
+    # sum(Xi * psat(T) / psat(Tf_i)) = 1, where psat is evaluated with the
+    # Lee-Kesler correlation for each compound at its own critical properties.
+    Xi = (
+        helpers.mass_fractions_to_mole_fractions(fuel, Yi).to("dimensionless").magnitude
+    )
+    Tc = fuel.Tc.to("K").magnitude
+    Pc = fuel.Pc.magnitude
+    omega = fuel.omega.magnitude
+    Tf_i = T_fpi.to("K").magnitude
+
+    T_flash = helpers.liaw_chiu_flash_point(Xi, Tf_i, Tc, Pc, omega)
+    return Units.Quantity(T_flash, "K")
+
+
+def heat_of_combustion(
+    fuel: "Fuel", Yi: types.Quantity1D | None = None
+) -> types.Quantity1D:
+    """Calculate the heat of combustion of the fuel using a Hess cycle.
+
+    Args:
+        fuel: Fuel object.
+        Yi: Mass fractions of each compound in the mixture.
+            Defaults to `fuel.Y_0` (initial mass fractions).
+
+    Returns:
+        Heat of combustion of the mixture in J/mol.
+    """
+    Yi = Yi if Yi is not None else fuel.Y_0
+    lhv_i = components.lower_heating_value(fuel)
+    return np.sum(Yi * lhv_i)

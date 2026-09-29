@@ -76,31 +76,34 @@ def _identify_families(fuel: "Fuel") -> list[str]:
     return families
 
 
+#: Walden-rule fusion entropy fallback (J/(mol*K)) for unclassified compounds.
+WALDEN_RULE_DS_FUS = 56.5
+
+
 @boehm_gcm.register_property
-def dsFus(fuel: "Fuel") -> types.Quantity1D:
-    """Return the fusion entropy (dSfus) for each component in the fuel.
+def dS_fus(fuel: "Fuel") -> types.Quantity1D:
+    """Return the fusion entropy (ΔS_fus) for each component in the fuel.
+
+    Compounds whose family is not present in the family correlation table
+    fall back to the Walden-rule value of 56.5 J/(mol*K).
 
     Args:
         fuel: Fuel object.
 
     Returns:
-        The predicted fusion entropy (dSfus) values in J/(mol*K).
-
-    Raises:
-        ValueError: If fusion entropy data is not available for a family.
+        The predicted fusion entropy (ΔS_fus) values in J/(mol*K).
     """
     families = _identify_families(fuel)
     result = []
     for i in range(fuel.num_compounds):
         family = families[i]
         nC = fuel.nC[i]
-        try:
+        if family in TABLE.index:
             row = TABLE.loc[family]
             dsFus_i = float(row["dSfus_A"]) + float(row["dSfus_B"]) * (
                 nC - int(row["C_ref"])
             )
             result.append(max(dsFus_i, 20.0))
-        except KeyError:
-            msg = f"No dSfus data available for family: {family}"
-            raise ValueError(msg)
+        else:
+            result.append(WALDEN_RULE_DS_FUS)
     return Units.Quantity(result, "J/(mol*K)")

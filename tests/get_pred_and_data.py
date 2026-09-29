@@ -8,6 +8,8 @@ from fuellib._data_locator import get_fueldata_props_dir
 from fuellib.utils import Units
 
 FUELDATA_PROPS_DIR = get_fueldata_props_dir()
+TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASELINE_DIR = os.path.join(TESTS_DIR, "baselinePredictions")
 
 
 def get_pred_and_data(fuel_name, prop_name):
@@ -43,6 +45,38 @@ def get_pred_and_data(fuel_name, prop_name):
             pred_props[i] = fuel.mixture_thermal_conductivity(fuel.Y_0, t)
 
     return data_temps, data_props, pred_props
+
+
+def get_pred_and_data_compound(fuel_name, prop_name):
+    """Get predicted and experimental compound-specific properties (e.g., Tb, Tm, omega).
+
+    Predictions are returned for every compound in the fuel mixture, regardless of
+    whether experimental data is available for that compound. Compounds without
+    experimental data will have `NaN` in the returned `data` array.
+    """
+    # Get the fuel properties based on the GCM
+    fuel = fl.Fuel(fuel_name)
+
+    exp_file = os.path.join(BASELINE_DIR, f"{fuel_name}_exp.csv")
+    exp_data = pd.read_csv(exp_file)
+
+    units_row = exp_data[exp_data["Compound"] == "Units"].iloc[0]
+    data_rows = exp_data[exp_data["Compound"] != "Units"].set_index("Compound")
+
+    exp_units = units_row[prop_name]
+
+    compounds = fuel.compounds
+    pred_props = getattr(fuel, prop_name)
+
+    exp_vals = np.full(len(compounds), np.nan)
+    for i, compound in enumerate(compounds):
+        if compound in data_rows.index:
+            val = data_rows.loc[compound, prop_name]
+            if pd.notna(val):
+                exp_vals[i] = float(val)
+    data_props = Units.Quantity(exp_vals, exp_units)
+
+    return compounds, data_props, pred_props
 
 
 # Backward-compatible alias for older call sites.
