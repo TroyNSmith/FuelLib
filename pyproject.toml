@@ -143,6 +143,10 @@ doctest_optionflags = "NORMALIZE_WHITESPACE"
 [tool.coverage.run]
 branch = true
 source = ["fuellib"]
+omit = [
+    "cli/*",
+    "exporters/*"
+]
 
 [tool.coverage.report]
 show_missing = true

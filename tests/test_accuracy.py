@@ -4,7 +4,11 @@ import unittest
 
 import numpy as np
 import pandas as pd
-from get_pred_and_data import get_pred_and_data, get_pred_and_data_compound
+from get_pred_and_data import (
+    get_pred_and_data,
+    get_pred_and_data_compound,
+    get_pred_and_data_constant,
+)
 
 from fuellib.utils import Units
 from fuellib import Fuel
@@ -53,6 +57,9 @@ class CompTestCase(unittest.TestCase):
         for fuel_name in fuel_names:
             baseline_file = os.path.join(TESTS_BASELINE_DIR, f"{fuel_name}.csv")
             df_base = pd.read_csv(baseline_file)
+            # Drop the "constant" row, which holds temperature-independent
+            # properties (e.g., FreezePoint), not a temperature-dependent value.
+            df_base = df_base[df_base.Temperature != "constant"].reset_index(drop=True)
             print(f"\n{BOLD}{fuel_name}:{STOP}\n")
             t_vals = df_base.Temperature.iloc[1:].to_numpy(dtype=float)
             t_units = df_base.Temperature.iloc[0]
@@ -120,6 +127,90 @@ class CompTestCase(unittest.TestCase):
                     )
 
         print(f"\n{passed_checks}/{total_checks} fuel-property checks passed")
+
+    def test_constant_property_accuracy(self):
+        """Compare MAPE of PR vs. stored baseline for constant (temperature-
+        independent) mixture properties, e.g., FreezePoint.
+        """
+        fuel_names = [
+            "heptane",
+            "decane",
+            "dodecane",
+            "posf10264",
+            "posf10325",
+            "posf10289",
+        ]
+        prop_names = ["FreezePoint"]
+
+        total_checks = 0
+        passed_checks = 0
+
+        print(f"\n\n{BLUE}Constant Property Accuracy Regression Check via MAPE:{STOP}")
+
+        for fuel_name in fuel_names:
+            baseline_file = os.path.join(TESTS_BASELINE_DIR, f"{fuel_name}.csv")
+            df_base = pd.read_csv(baseline_file)
+            const_row = df_base[df_base.Temperature == "constant"]
+            print(f"\n{BOLD}{fuel_name}:{STOP}\n")
+
+            for prop in prop_names:
+                with self.subTest(fuel=fuel_name, prop=prop):
+                    # Current model predictions and experimental reference data.
+                    data, pred = get_pred_and_data_constant(fuel_name, prop)
+                    if data is None:
+                        # No experimental data available for this fuel/property.
+                        continue
+
+                    total_checks += 1
+
+                    base_val = float(const_row[prop].iloc[0])
+                    base_units = df_base[prop].iloc[0]
+                    base_prop = Units.Quantity(base_val, base_units).to("K")
+
+                    # Convert to Kelvin (non-offset) before computing relative
+                    # error, since percentage error is ill-defined for
+                    # temperatures in an offset unit like Celsius.
+                    data = data.to("K")
+                    pred = pred.to("K")
+
+                    mape_base = np.abs(data - base_prop) / np.abs(data) * 100
+                    mape = np.abs(data - pred) / np.abs(data) * 100
+
+                    # Regression check: MAPE must not exceed Baseline.
+                    regression_ok = (mape <= mape_base) or np.isclose(mape, mape_base)
+
+                    if regression_ok:
+                        passed_checks += 1
+                        print(
+                            f"  {GREEN}"
+                            f"✓ {prop}"
+                            f"{STOP}"
+                            f"\n    Baseline   = {mape_base.magnitude:8.4f}%"
+                            f"\n    New        = {mape.magnitude:8.4f}%"
+                            f"\n    Difference = {mape.magnitude - mape_base.magnitude:8.4f}%"
+                            "\n"
+                        )
+                    else:
+                        print(
+                            f"  {RED}"
+                            f"✗ {prop}"
+                            f"{STOP}"
+                            f"\n    Baseline   = {mape_base.magnitude:8.4f}%"
+                            f"\n    New        = {mape.magnitude:8.4f}%"
+                            f"\n    Difference = {mape.magnitude - mape_base.magnitude:8.4f}%"
+                            "\n"
+                        )
+
+                    self.assertTrue(
+                        regression_ok,
+                        msg=(
+                            f"{fuel_name} / {prop}: MAPE regressed from "
+                            f"{mape_base.magnitude:.4f}% (baseline) to "
+                            f"{mape.magnitude:.4f}%."
+                        ),
+                    )
+
+        print(f"\n{passed_checks}/{total_checks} constant-property checks passed")
 
     def test_compound_accuracy(self):
         """Compare MAPE of PR vs. stored baseline for compound-specific properties."""

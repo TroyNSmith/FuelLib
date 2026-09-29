@@ -512,26 +512,41 @@ def thermal_conductivity_latini(
 
 
 def flash_point_alqaheem(fuel: "Fuel") -> types.Quantity1D:
-    """Calculate flash points using the Alqaheem method.
+    """Calculate component flash points using the Alqaheem-Riazi correlation.
+
+    Uses the Alqaheem and Riazi (2017) correlation, which estimates the
+    flash point of a hydrocarbon as a fixed fraction of its (anchored)
+    normal boiling point:
+
+        Tfp_i = 0.70 * Tb_i
 
     Args:
         fuel: Fuel object.
 
     Returns:
-        Mixture flash point in K.
+        Component flash points in K.
     """
     Tb = fuel.get_property("gani", "Tb").to("K")
     return 0.70 * Tb
 
 
 def flash_point_alibashki(fuel: "Fuel") -> types.Quantity1D:
-    """Calculate flash points using the Alibashki method.
+    """Calculate component flash points using the Alibakhshi et al. correlation.
+
+    Uses the modified group-contribution correlation of Alibakhshi et al.
+    (2015):
+
+        Tfp_i = 12.14 + 0.73 * Tb_i + sum_k(N_ik * phi_k)
+
+    where `Tb_i` is the (anchored) normal boiling point and `phi_k` are the
+    Alibakhshi group-contribution terms tabulated in
+    `gcmExtendedTable.csv`.
 
     Args:
         fuel: Fuel object.
 
     Returns:
-        Mixture flash point in K.
+        Component flash points in K.
     """
     Tb = fuel.get_property("gani", "Tb").to("K")
     phi = fuel.get_property("gani", "alibakhshi_phi").to("K")
@@ -542,7 +557,24 @@ def lower_heating_value(fuel: "Fuel") -> types.Quantity1D:
     """Calculate component lower heating values from a Hess cycle.
 
     Uses heat of formation and heat of vaporization derived from the Constantinou-Gani
-    GCM.
+    GCM. For component `i` with `nC` carbon atoms and `nH` hydrogen atoms, the
+    liquid-phase heat of formation is
+
+        Hf_liq_i = Hf_gas_i - Hv_stp_i,
+
+    the heat of combustion is
+
+        dHc_i = nC_i * Hf(CO2, g) + (nH_i / 2) * Hf(H2O, g) - Hf_liq_i,
+
+    using Hf(CO2, g) = -393.51 kJ/mol and Hf(H2O, g) = -241.83 kJ/mol at
+    298.15 K, and the net (lower) heating value is LHV_i = -dHc_i / MW_i.
+
+    This estimate corresponds to hydrocarbons only; it does not account for
+    heteroatom-containing groups. Callers combining this with
+    heteroatom-containing compounds should validate the group decomposition
+    before use. The result is an engineering estimate related to ASTM
+    D4809/D3338 heating-value characterization, not a simulated
+    bomb-calorimeter test.
 
     Args:
         fuel: Fuel object.

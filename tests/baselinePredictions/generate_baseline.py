@@ -7,13 +7,17 @@ from pathlib import Path
 
 import pandas as pd
 from fuellib import Fuel
-from fuellib.utils import types
+from fuellib.utils import Units, types
 
 baseline_dir = Path(__file__).parent
 if str(baseline_dir.parent) not in sys.path:
     sys.path.insert(0, str(baseline_dir.parent))
 
-from get_pred_and_data import get_pred_and_data, get_pred_and_data_compound
+from get_pred_and_data import (
+    get_pred_and_data,
+    get_pred_and_data_compound,
+    get_pred_and_data_constant,
+)
 
 
 def _prep_quantity(quantity: types.Quantity1D) -> list[str | float]:
@@ -28,6 +32,11 @@ properties = {
     "VaporPressure": "kPa",
     "SurfaceTension": "N/m",
     "ThermalConductivity": "W/m/K",
+}
+
+# Temperature-independent (constant) mixture properties, e.g., FreezePoint.
+constant_properties = {
+    "FreezePoint": "celsius",
 }
 
 compound_fuel_name = "refCompounds"
@@ -110,12 +119,33 @@ def main():
                     df_combined, df_prop, on="Temperature", how="outer"
                 )
 
+        # Add a single "constant" row for temperature-independent properties.
+        const_row = {"Temperature": "constant"}
+        for prop_name, prop_unit in constant_properties.items():
+            data, pred = get_pred_and_data_constant(fuel_name, prop_name)
+            pred_conv = pred.to(prop_unit)
+            const_row[prop_name] = float(pred_conv.magnitude)
+            const_row[f"Error_{prop_name}"] = (
+                float(abs(data.to(prop_unit) - pred_conv).magnitude)
+                if data is not None
+                else float("nan")
+            )
+        df_combined = pd.concat(
+            [df_combined, pd.DataFrame([const_row])], ignore_index=True, sort=False
+        )
+
+        is_const = df_combined["Temperature"] == "constant"
         is_numeric = pd.to_numeric(df_combined["Temperature"], errors="coerce").notna()
-        units_row = df_combined[~is_numeric]
+        units_row = df_combined[~is_numeric & ~is_const].copy()
+        for prop_name, prop_unit in constant_properties.items():
+            units_str = str(Units.Quantity(1.0, prop_unit).units)
+            units_row[prop_name] = units_str
+            units_row[f"Error_{prop_name}"] = units_str
+        const_rows = df_combined[is_const]
         data_rows = df_combined[is_numeric].sort_values(
             by="Temperature", key=lambda s: s.astype(float)
         )
-        df_combined = pd.concat([units_row, data_rows], ignore_index=True)
+        df_combined = pd.concat([units_row, const_rows, data_rows], ignore_index=True)
 
         df_combined.to_csv(out_file, index=False)
 

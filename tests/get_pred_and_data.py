@@ -19,11 +19,16 @@ def get_pred_and_data(fuel_name, prop_name):
     data_file = f"{fuel_name}.csv"
     data = pd.read_csv(os.path.join(FUELDATA_PROPS_DIR, data_file))
 
-    t_vals = data.Temperature.iloc[1:].to_numpy(dtype=float)
+    # Drop the "constant" row (if present), which holds temperature-independent
+    # properties (e.g., FreezePoint) rather than a temperature-dependent value.
+    data_rows = data.iloc[1:]
+    data_rows = data_rows[data_rows.Temperature != "constant"]
+
+    t_vals = data_rows.Temperature.to_numpy(dtype=float)
     t_units = data.Temperature.iloc[0]
     data_temps = Units.Quantity(t_vals, t_units).to("K")
 
-    data_vals = data[prop_name].iloc[1:].to_numpy(dtype=float)
+    data_vals = data_rows[prop_name].to_numpy(dtype=float)
     data_units = data[prop_name].iloc[0]
     data_props = Units.Quantity(data_vals, data_units)
 
@@ -45,6 +50,35 @@ def get_pred_and_data(fuel_name, prop_name):
             pred_props[i] = fuel.mixture_thermal_conductivity(fuel.Y_0, t)
 
     return data_temps, data_props, pred_props
+
+
+def get_pred_and_data_constant(fuel_name, prop_name):
+    """Get predicted and experimental values for a temperature-independent
+    (constant) mixture property, e.g., FreezePoint.
+
+    Returns (None, pred) if there is no experimental data for `prop_name` (e.g.,
+    the fuel data file has no such column, or no value in its "constant" row).
+    """
+    # Get the fuel properties based on the GCM
+    fuel = fl.Fuel(fuel_name)
+
+    data_file = f"{fuel_name}.csv"
+    data = pd.read_csv(os.path.join(FUELDATA_PROPS_DIR, data_file))
+
+    if prop_name == "FreezePoint":
+        pred_prop = fl.correlate.mixture.freeze_point_boehm(fuel, fuel.Y_0)
+    else:
+        raise ValueError(f"Unknown constant property: {prop_name}")
+
+    data_prop = None
+    if prop_name in data.columns:
+        const_row = data[data.Temperature == "constant"]
+        if not const_row.empty and pd.notna(const_row[prop_name].iloc[0]):
+            data_units = data[prop_name].iloc[0]
+            data_val = float(const_row[prop_name].iloc[0])
+            data_prop = Units.Quantity(data_val, data_units)
+
+    return data_prop, pred_prop
 
 
 def get_pred_and_data_compound(fuel_name, prop_name):
