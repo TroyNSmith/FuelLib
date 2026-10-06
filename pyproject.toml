@@ -38,7 +38,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+jax = [
+    "jax>=0.11.2",
+]
 dev = [
+    "fuellib[jax]",
     "pytest>=6.0",
     "sphinx>=4.0",
     "sphinx-rtd-theme>=1.0",
@@ -124,6 +128,20 @@ layers = [
     "fuellib.data", # May import rdk and utils
     "fuellib.rdk",
     "fuellib.utils", # Importable by all modules
+]
+
+[[tool.importlinter.contracts]]
+name = "Correlation kernels are unitless and Fuel-independent"
+type = "forbidden"
+source_modules = ["fuellib.correlate.kernels"]
+forbidden_modules = [
+    "fuellib.fuel",
+    "fuellib.gcm",
+    "fuellib.data",
+    "fuellib.rdk",
+    "fuellib.correlate.components",
+    "fuellib.correlate.mixture",
+    "fuellib.correlate.helpers",
 ]
 
 # Pytest configurations

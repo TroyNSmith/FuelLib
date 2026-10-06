@@ -246,9 +246,9 @@ class Fuel:
     @property
     def MW(self) -> types.Quantity1D:
         """Molecular weights of the compounds in the fuel mixture in kg/mol."""
-        return Units.Q([mol.molecular_weight(m) for m in self.rdkit_mols], "g/mol").to(
-            "kg/mol"
-        )
+        return Units.Quantity(
+            [mol.molecular_weight(m) for m in self.rdkit_mols], "g/mol"
+        ).to("kg/mol")
 
     @property
     def hc_type(self) -> list[str]:

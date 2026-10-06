@@ -20,6 +20,7 @@ This installs FuelLib with all development tools:
 - **Code formatting & linting:** Ruff
 - **Type checking:** ty
 - **Testing:** pytest, pytest-cov
+- **Array backends:** JAX (via the ``jax`` extra; enables the JAX backend accuracy tests)
 
 Optional: Conda Environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -2,6 +2,8 @@ from pathlib import Path
 import pytest
 import os
 import unittest
+from contextlib import ExitStack
+from unittest import mock
 
 import numpy as np
 import pandas as pd
@@ -9,6 +11,14 @@ import pandas as pd
 from fuellib.utils import Units
 from fuellib import Fuel, correlate
 from baselinePredictions.generate_baseline import method_map
+
+try:
+    import jax
+    import jax.numpy as jnp
+
+    HAS_JAX = True
+except ImportError:
+    HAS_JAX = False
 
 # Locate the tests baseline directory
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +31,29 @@ BLUE = "\033[1;34m"
 STOP = "\033[0m"
 
 
+def _patch_kernels_with_jax(stack: ExitStack) -> None:
+    """Route every correlation kernel through JAX for the lifetime of `stack`.
+
+    The unit-aware wrappers pass NumPy magnitudes to the kernels, so each kernel
+    is wrapped to receive JAX arrays (exercising the real backend dispatch) and
+    return NumPy arrays (so Pint and the rest of the pipeline are unchanged).
+    """
+
+    def as_jax(fn):
+        def wrapper(*args, **kwargs):
+            out = fn(*(jnp.asarray(a) for a in args), **kwargs)
+            assert isinstance(out, jax.Array), f"{fn.__name__} did not dispatch to JAX"
+            return np.asarray(out)
+
+        return wrapper
+
+    for module_name in correlate.kernels.__all__:
+        module = getattr(correlate.kernels, module_name)
+        for fn_name in module.__all__:
+            fn = getattr(module, fn_name)
+            stack.enter_context(mock.patch.object(module, fn_name, as_jax(fn)))
+
+
 class MixtureTestCase(unittest.TestCase):
     """Test class for verifying the accuracy of mixture predictions."""
 
@@ -30,9 +63,25 @@ class MixtureTestCase(unittest.TestCase):
 
     prop_width = max(len(prop) for prop in method_map.keys())
 
-    def test_mixture_accuracy(self) -> None:
-        """Test the accuracy of mixture predictions."""
-        # Implement the test logic here
+    def test_mixture_accuracy_numpy(self) -> None:
+        """Test the accuracy of mixture predictions with the NumPy backend."""
+        self._check_mixture_accuracy(backend="NumPy")
+
+    @unittest.skipIf(not HAS_JAX, "JAX not installed (pip install 'fuellib[jax]')")
+    def test_mixture_accuracy_jax(self) -> None:
+        """Test the accuracy of mixture predictions with the JAX backend."""
+        with ExitStack() as stack:
+            _patch_kernels_with_jax(stack)
+            # JAX defaults to float32, so allow for single-precision round-off
+            self._check_mixture_accuracy(backend="JAX", atol=1e-4)
+
+    def _check_mixture_accuracy(self, backend: str, atol: float = 1e-8) -> None:
+        """Check mixture predictions against the baseline MAPEs.
+
+        Args:
+            backend: Label of the array backend under test (for reporting).
+            atol: Absolute tolerance (in % MAPE) for matching the baseline.
+        """
         passed_checks = 0
         total_checks = 0
 
@@ -41,10 +90,11 @@ class MixtureTestCase(unittest.TestCase):
             fuel_data = self.base_data[self.base_data["Fuel"] == fuel_name]
 
             print(
-                f"\n\n{BLUE}{fuel_name.capitalize()} Accuracy Regression Check via MAPE:{STOP}"
+                f"\n\n{BLUE}{fuel_name.capitalize()} Accuracy Regression Check via MAPE "
+                f"({backend}):{STOP}"
             )
             for prop_name in fuel_data["Property"].unique():
-                with self.subTest(fuel=fuel_name, property=prop_name):
+                with self.subTest(backend=backend, fuel=fuel_name, property=prop_name):
                     total_checks += 1
 
                     temps = []
@@ -90,9 +140,9 @@ class MixtureTestCase(unittest.TestCase):
                     base_mapes = np.array(base_mapes)
                     pred_mapes = np.array(pred_mapes)
 
-                    regression_ok = np.allclose(pred_mapes, base_mapes) or np.all(
-                        pred_mapes <= base_mapes
-                    )
+                    regression_ok = np.allclose(
+                        pred_mapes, base_mapes, atol=atol
+                    ) or np.all(pred_mapes <= base_mapes)
                     if regression_ok:
                         passed_checks += 1
                         print(
@@ -132,7 +182,9 @@ class MixtureTestCase(unittest.TestCase):
                         ),
                     )
 
-        print(f"\n{passed_checks}/{total_checks} fuel-property checks passed")
+        print(
+            f"\n{passed_checks}/{total_checks} fuel-property checks passed ({backend})"
+        )
 
 
 class TestFuelMWAccuracy:

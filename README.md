@@ -32,6 +32,13 @@ The easiest way to install FuelLib is via pip from [pypi.org/project/fuellib](ht
 pip install fuellib
 ~~~
 
+To use the JAX-compatible correlation kernels (`fuellib.correlate.kernels`), install the
+optional `jax` extra:
+
+~~~
+pip install 'fuellib[jax]'
+~~~
+
 For better dependency isolation, it is recommended to create a [conda](https://www.anaconda.com/download) environment. For example:
 
 #### Using Conda

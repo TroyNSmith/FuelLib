@@ -29,9 +29,12 @@ FuelLib File Organization
         - ``components.py``: correlations for individual compound properties (e.g. density, viscosity, vapor pressure, surface tension, thermal conductivity, flash point, lower heating value)
         - ``mixture.py``: correlations for mixture properties computed from component properties and mixing rules (e.g. density, viscosity, freeze point, flash point, heat of combustion, yield sooting index, derived cetane number)
         - ``helpers.py``: shared helper functions for mixing rules and mass/mole fraction conversions
+        - **kernels**: unitless, ``Fuel``-independent array implementations of selected correlations, dispatched to NumPy or JAX based on input type. The unit-aware functions above delegate to these, and differentiable workflows (e.g. inverse design with ``jax.jit``/``jax.grad``) can call them directly with precomputed component properties
+            - ``mixture.py``: mixture kernels (e.g. density, Arrhenius and Kendall-Monroe viscosity mixing)
 
     - **utils**: subpackage with shared utilities
         - ``types.py``: type aliases and the ``Units`` quantity registry
+        - ``backend.py``: ``get_namespace`` for dispatching kernels to NumPy or JAX
         - ``logger.py``: ``FLLogger`` (the ``fuellib`` logger), ``set_log_level``, and ANSI color codes for terminal output
 
     - **rdk**: subpackage with `RDKit <https://www.rdkit.org/docs/>`_-based molecular utilities
@@ -100,6 +103,7 @@ Click on links below for the full auto-documentation of the API.
     fuellib.convert
     fuellib.utility
     fuellib.utils.types
+    fuellib.utils.backend
     fuellib.utils.logger
     fuellib.gcm.core
     fuellib.gcm.gani
@@ -109,3 +113,4 @@ Click on links below for the full auto-documentation of the API.
     fuellib.correlate.components
     fuellib.correlate.mixture
     fuellib.correlate.helpers
+    fuellib.correlate.kernels.mixture

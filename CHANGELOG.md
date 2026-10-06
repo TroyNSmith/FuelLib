@@ -16,11 +16,28 @@ used to parse and validate this file's entries against that format.
 - `YSI` and `DCN` reference values and ~70 additional reference compounds in `data/refCompounds.csv` and `data/refProperties.csv`.
 - `references.family_by_smiles` to look up the reference family of a compound from its SMILES.
 - `.scratch/` to `.gitignore`.
+- `correlate.kernels` subpackage of unitless, `Fuel`-independent correlation kernels that dispatch to NumPy or JAX based on input type, for use in differentiable workflows (`jax.jit`/`jax.grad`).
+  * `kernels.mixture.density(Y, rho_i)`, `kernels.mixture.kinematic_viscosity_arrhenius(Y, MW, nu_i)`, and `kernels.mixture.kinematic_viscosity_kendall_monroe(Y, MW, nu_i)`; the viscosity kernels convert mass fractions to mole fractions internally.
+- `utils.backend.get_namespace` returning `jax.numpy` if any input is a JAX array/tracer, otherwise `numpy` (JAX is never imported by FuelLib itself).
+- Optional `jax` extra (`pip install 'fuellib[jax]'`), included in the `dev` extra.
+- `ArrayLike` (from `numpy.typing`) exported from `utils.types`.
+- `import-linter` contract forbidding `fuellib.correlate.kernels` from importing `fuellib.fuel`, `fuellib.gcm`, `fuellib.data`, `fuellib.rdk`, or the unit-aware `correlate` modules.
+- `test_accuracy::MixtureTestCase.test_mixture_accuracy_jax` re-runs the baseline accuracy checks with every kernel routed through JAX (skipped if JAX is not installed; `atol=1e-4` for float32 round-off).
 
 ### Changed
 - `gcm.boehm` uses the `Family` from `refCompounds.csv` for reference compounds (when `Fuel.use_references` is `True`) rather than always identifying it from the structure.
 - `references` CSV loading tolerates empty/unnamed spreadsheet columns and padded whitespace; `references.update_compounds_csv` quotes non-numeric fields (InChI strings contain commas) and `python -m fuellib.data.references` regenerates `refCompounds.csv`.
 - `references.properties_by_smiles` uses a cached index (rebuilt when the CSV files change) instead of reloading and revalidating the CSVs on every call.
+- `utils.types.Units` is now the shared `pint.UnitRegistry` directly rather than a wrapper class; use `Units.Quantity` (the `Units.Q` alias is removed).
+- `correlate.mixture.density` and `correlate.mixture.kinematic_viscosity_dutt` delegate to `correlate.kernels.mixture`.
+- `test_accuracy::MixtureTestCase.test_mixture_accuracy` renamed to `test_mixture_accuracy_numpy`; output and subtests are labeled by backend.
+- `generate_baseline.method_map` is type-annotated.
+
+### Removed
+- `PintQuantityT`, `UnxtQuantityT`, and `QuantityT` type variables and the `ureg` name from `utils.types` (Unxt support dropped).
+
+### Fixed
+- `correlate.mixture.yield_sooting_index` and `correlate.mixture.derived_cetane_number` return annotations corrected to `Quantity0D`.
 
 ## [Unreleased] (YSI, DCN prep)
 

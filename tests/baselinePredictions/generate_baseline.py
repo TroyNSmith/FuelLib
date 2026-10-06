@@ -1,8 +1,12 @@
 """Generate and fetch baseline predictions for fuel properties."""
 
-import pandas as pd
-import numpy as np
+from collections.abc import Callable
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pint
+
 from fuellib import correlate, Units, Fuel
 
 data_dir = Path(__file__).parent
@@ -20,7 +24,7 @@ mixture_data = pd.DataFrame(
 )
 
 fuel_names = {"decane", "dodecane", "heptane", "posf10264", "posf10325", "posf10289"}
-method_map = {
+method_map: dict[str, Callable[..., pint.Quantity]] = {
     "density": correlate.mixture.density,
     "viscosity": correlate.mixture.kinematic_viscosity_dutt,
     "vaporpressure": correlate.mixture.saturated_vapor_pressure,

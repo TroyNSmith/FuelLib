@@ -8,7 +8,7 @@ from scipy.optimize import curve_fit, root
 from fuellib import constants
 
 from ..utils import FLLogger, Units, types
-from . import components, helpers
+from . import components, helpers, kernels
 
 if TYPE_CHECKING:
     from ..fuel import Fuel
@@ -104,7 +104,8 @@ def density(
     """
     Yi = Yi if Yi is not None else fuel.Y_0
     rho_i = components.density(fuel, T).to("kg/m^3")
-    return Yi @ rho_i
+    rho = np.asarray(kernels.mixture.density(Yi.magnitude, rho_i.magnitude))
+    return Units.Quantity(rho, "kg/m^3")
 
 
 def kinematic_viscosity_dutt(
@@ -131,16 +132,16 @@ def kinematic_viscosity_dutt(
     """
     Yi = Yi if Yi is not None else fuel.Y_0
     nu_i = components.kinematic_viscosity_dutt(fuel, T).to("m^2/s").magnitude
-    # Calculate mole fractions for each species
-    Xi = helpers.mass_fractions_to_mole_fractions(fuel, Yi).magnitude
+    Y = Yi.magnitude
+    MW = fuel.MW.magnitude
     if correlation.casefold() == "Arrhenius".casefold():
         # Arrhenius mixing correlation
-        nu = np.exp(np.sum(Xi * np.log(nu_i)))
+        nu = kernels.mixture.kinematic_viscosity_arrhenius(Y, MW, nu_i)
     else:
         # Default: Kendall-Monroe mixing correlation
-        nu = np.sum(Xi * (nu_i ** (1.0 / 3.0))) ** 3.0
+        nu = kernels.mixture.kinematic_viscosity_kendall_monroe(Y, MW, nu_i)
 
-    return Units.Quantity(nu, "m^2/s")
+    return Units.Quantity(float(np.asarray(nu)), "m^2/s")
 
 
 def dynamic_viscosity_dutt(
@@ -662,7 +663,7 @@ def heat_of_combustion(
 
 def yield_sooting_index(
     fuel: "Fuel", Yi: types.Quantity1D | None = None
-) -> types.Quantity1D:
+) -> types.Quantity0D:
     """Calculate the yield sooting index of the fuel mixture.
 
     Combines each component's yield sooting index (`components.yield_sooting_index`)
@@ -702,7 +703,7 @@ def derived_cetane_number(
     Yi: types.Quantity1D | None = None,
     *,
     T_ref: types.Quantity0D = constants.T_stp,
-) -> types.Quantity1D:
+) -> types.Quantity0D:
     """Calculate the derived cetane number (DCN) of the fuel mixture.
 
     Combines each component's derived cetane number with a linear, liquid volume
