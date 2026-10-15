@@ -3,7 +3,7 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from fuellib import correlate, Units, Fuel
+from fuellib import Units, Fuel
 
 data_dir = Path(__file__).parent
 mixture_file = data_dir / "mixture_baseline.csv"
@@ -21,17 +21,19 @@ mixture_data = pd.DataFrame(
 
 fuel_names = {"decane", "dodecane", "heptane", "posf10264", "posf10325", "posf10289"}
 method_map = {
-    "density": correlate.mixture.density,
-    "viscosity": correlate.mixture.kinematic_viscosity_dutt,
-    "vaporpressure": correlate.mixture.saturated_vapor_pressure,
-    "dynamicviscosity": correlate.mixture.dynamic_viscosity_dutt,
-    "surfacetension": correlate.mixture.surface_tension,
-    "thermalconductivity": correlate.mixture.thermal_conductivity_latini,
-    "cp": correlate.components.molar_specific_heat_capacity,
-    "freezepoint": correlate.mixture.freeze_point_boehm,
-    "flashpoint": correlate.mixture.flash_point_alibashki,
-    "heatofcombustion": correlate.mixture.heat_of_combustion,
-    "derivedcetanenumber": correlate.mixture.derived_cetane_number,
+    "density": lambda fuel, T: fuel.mixture_density(fuel.Y_0, T),
+    "viscosity": lambda fuel, T: fuel.mixture_kinematic_viscosity(fuel.Y_0, T),
+    "vaporpressure": lambda fuel, T: fuel.mixture_vapor_pressure(fuel.Y_0, T),
+    "dynamicviscosity": lambda fuel, T: fuel.mixture_dynamic_viscosity(fuel.Y_0, T),
+    "surfacetension": lambda fuel, T: fuel.mixture_surface_tension(fuel.Y_0, T),
+    "thermalconductivity": lambda fuel, T: fuel.mixture_thermal_conductivity(
+        fuel.Y_0, T
+    ),
+    "cp": lambda fuel, T: fuel.Cp(T),
+    "freezepoint": lambda fuel: fuel.mixture_freeze_point(),
+    "flashpoint": lambda fuel: fuel.mixture_flash_point(),
+    "heatofcombustion": lambda fuel: fuel.mixture_heat_of_combustion(),
+    "derivedcetanenumber": lambda fuel: fuel.mixture_derived_cetane_number(),
 }
 
 

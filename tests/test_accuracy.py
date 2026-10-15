@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from fuellib.utils import Units
-from fuellib import Fuel, correlate
+from fuellib import Fuel
 from baselinePredictions.generate_baseline import method_map
 
 # Locate the tests baseline directory

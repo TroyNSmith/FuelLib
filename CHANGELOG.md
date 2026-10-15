@@ -7,6 +7,17 @@ release workflow to parse release entries in this file.
 
 ## [Unreleased]
 
+### Added
+- `Fuel` methods for correlations previously only available in `correlate`: `flash_point`, `lower_heating_value`, `mixture_freeze_point`, `mixture_flash_point`, `mixture_heat_of_combustion`, `mixture_yield_sooting_index`, and `mixture_derived_cetane_number`.
+- `correlation` argument (`"Constantinou-Gani"` or `"Ruzicka-Domalski"`) to `Fuel.Cp` and `Fuel.Cl`.
+- `utility.arithmetic` and `utility.geometric` mixing rules.
+
+### Changed
+- `fuellib.fuel` is now a subpackage: the core `Fuel` class (`fuel.core`) is composed of `ComponentPropertiesMixin`, `ComponentCorrelationsMixin`, and `MixtureCorrelationsMixin`. The public `Fuel` API is unchanged.
+
+### Removed
+- **Breaking:** the `fuellib.correlate` subpackage. Use the equivalent `Fuel` methods instead, and `utility.arithmetic`/`utility.geometric` in place of `correlate.mixture.arithmetic`/`geometric`.
+
 ### Fixed 
 - Documentation builds now use Python 3.12 and retry package downloads, preventing failures caused by transient package-index connection resets.
 

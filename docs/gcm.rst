@@ -157,7 +157,7 @@ The ``boehm`` method
 :class:`~fuellib.gcm.core.GCM` that provides the fusion entropy,
 :math:`\Delta S_{\textit{fus},i}`, of each compound following Boehm
 (2022). It currently registers a single property, ``dS_fus`` (J/mol/K), which
-is used by :func:`~fuellib.correlate.mixture.freeze_point_boehm`.
+is used by :meth:`~fuellib.fuel.Fuel.mixture_freeze_point`.
 
 Each compound's hydrocarbon family is read from the ``Family`` column of
 ``refCompounds.csv`` (available as ``fuel.compoundsData["Family"]``). The families

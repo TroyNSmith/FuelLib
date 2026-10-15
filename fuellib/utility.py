@@ -6,11 +6,64 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
-from . import correlate
 from .utils import Units, types
 
 if TYPE_CHECKING:
     from .fuel import Fuel
+
+
+def arithmetic(
+    X: types.Quantity1D,
+    var_n: types.Quantity1D,
+) -> types.Quantity0D:
+    """Arithmetic mixing rule for computing mixture properties.
+
+    Args:
+        X: Mole fractions of the compounds.
+        var_n: Individual compound properties.
+
+    Returns:
+        Mixture property value.
+    """
+    values = var_n.magnitude
+    mag_X = X.to("dimensionless").magnitude
+
+    num_comps = len(values)
+    var_mix = 0.0
+    for i in range(num_comps):
+        for j in range(num_comps):
+            # Use arithmetic definition for the pseudo property
+            var_ij = (values[i] + values[j]) / 2
+            var_mix += mag_X[i] * mag_X[j] * var_ij
+
+    return Units.Quantity(var_mix, var_n.units)  # Attach original units from var_n
+
+
+def geometric(
+    X: types.Quantity1D,
+    var_n: types.Quantity1D,
+) -> types.Quantity0D:
+    """Geometric mixing rule for computing mixture properties.
+
+    Args:
+        X: Mole fractions of the compounds.
+        var_n: Individual compound properties.
+
+    Returns:
+        Mixture property value.
+    """
+    values = var_n.magnitude
+    mag_X = X.to("dimensionless").magnitude
+
+    num_comps = len(values)
+    var_mix = 0.0
+    for i in range(num_comps):
+        for j in range(num_comps):
+            # Use geometric definition for the pseudo property
+            var_ij = (values[i] * values[j]) ** 0.5
+            var_mix += mag_X[i] * mag_X[j] * var_ij
+
+    return Units.Quantity(var_mix, var_n.units)  # Attach original units from var_n
 
 
 def mixing_rule(
@@ -29,8 +82,8 @@ def mixing_rule(
         Mixture property value.
     """
     if pseudo_prop.casefold() == "geometric":
-        return correlate.mixture.geometric(X, var_n)
-    return correlate.mixture.arithmetic(X, var_n)
+        return geometric(X, var_n)
+    return arithmetic(X, var_n)
 
 
 def droplet_volume(r: types.Quantity0D) -> types.Quantity0D:
@@ -70,4 +123,4 @@ def droplet_mass(
         return Units.Quantity(np.zeros_like(fuel.MW.magnitude), "kg")
 
 
-__all__ = ["droplet_mass", "droplet_volume", "mixing_rule"]
+__all__ = ["arithmetic", "droplet_mass", "droplet_volume", "geometric", "mixing_rule"]

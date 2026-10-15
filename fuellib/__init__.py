@@ -15,7 +15,7 @@ except ImportError:
 
 # Import fuel class
 # Import submodules for namespacing
-from . import constants, convert, correlate, utility
+from . import constants, convert, utility
 
 # Import data locator functions
 from ._data_locator import (
@@ -32,7 +32,6 @@ __all__ = [
     "Units",
     "constants",
     "convert",
-    "correlate",
     "get_data_dir",
     "get_fueldata_dir",
     "get_fueldata_gc_dir",

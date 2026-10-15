@@ -119,7 +119,6 @@ type = "layers"
 layers = [
     "fuellib.exporters | fuellib.cli", # Not importable by any modules
     "fuellib.fuel",
-    "fuellib.correlate",
     "fuellib.gcm",
     "fuellib.rdk",
     "fuellib.utils", # Importable by all modules
