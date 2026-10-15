@@ -1,4 +1,4 @@
-"""Mixin providing per-component (pure compound) properties for `Fuel`."""
+"""Per-component (pure compound) properties for `Fuel`."""
 
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ if TYPE_CHECKING:
     from .core import Fuel
 
 
-class ComponentPropertiesMixin:
-    """Mixin for properties of each compound in the fuel.
+class ComponentProperties:
+    """Properties of each compound in the fuel.
 
     Properties are reference values (when `useRefProperties` is `True` and available),
     group contribution predictions, or values derived from them.
@@ -331,4 +331,4 @@ class ComponentPropertiesMixin:
         return np.array(fam_codes, dtype=int)
 
 
-__all__ = ["ComponentPropertiesMixin"]
+__all__ = ["ComponentProperties"]

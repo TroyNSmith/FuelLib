@@ -1,4 +1,4 @@
-"""Mixin providing temperature-dependent correlations for each component of `Fuel`."""
+"""Temperature-dependent correlations for each component of `Fuel`."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from scipy.optimize import curve_fit
 
 from .. import constants
 from ..utils import Units, types
-from .component_properties import ComponentPropertiesMixin
+from .component_properties import ComponentProperties
 
 
 def _antoine_eq(
@@ -29,8 +29,8 @@ def _antoine_eq(
     return A - B / (T + C)
 
 
-class ComponentCorrelationsMixin(ComponentPropertiesMixin):
-    """Mixin for correlations evaluated for each compound in the fuel."""
+class ComponentCorrelations(ComponentProperties):
+    """Correlations evaluated for each compound in the fuel."""
 
     def molar_liquid_vol(
         self, T: types.Quantity0D, comp_idx: int | None = None
@@ -574,4 +574,4 @@ class ComponentCorrelationsMixin(ComponentPropertiesMixin):
         return lhv[comp_idx] if comp_idx is not None else lhv
 
 
-__all__ = ["ComponentCorrelationsMixin"]
+__all__ = ["ComponentCorrelations"]

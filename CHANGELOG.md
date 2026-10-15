@@ -13,7 +13,7 @@ release workflow to parse release entries in this file.
 - `utility.arithmetic` and `utility.geometric` mixing rules.
 
 ### Changed
-- `fuellib.fuel` is now a subpackage: the core `Fuel` class (`fuel.core`) is composed of `ComponentPropertiesMixin`, `ComponentCorrelationsMixin`, and `MixtureCorrelationsMixin`. The public `Fuel` API is unchanged.
+- `fuellib.fuel` is now a subpackage: the core `Fuel` class (`fuel.core`) is composed of `ComponentProperties`, `ComponentCorrelations`, and `MixtureCorrelations`. The public `Fuel` API is unchanged.
 
 ### Removed
 - **Breaking:** the `fuellib.correlate` subpackage. Use the equivalent `Fuel` methods instead, and `utility.arithmetic`/`utility.geometric` in place of `correlate.mixture.arithmetic`/`geometric`.

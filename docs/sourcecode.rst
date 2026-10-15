@@ -13,9 +13,9 @@ FuelLib File Organization
 
     - **fuel**: subpackage defining the :class:`~fuellib.fuel.Fuel` class for Group Contribution Method calculations
         - ``core.py``: core ``Fuel`` class, including loading of GCxGC data and matching of compounds to the reference data tables
-        - ``component_properties.py``: ``ComponentPropertiesMixin`` with properties of each compound (critical properties, reference-only properties, GCM predictions, and molecular structure)
-        - ``component_correlations.py``: ``ComponentCorrelationsMixin`` with correlations for individual compound properties (e.g. density, viscosity, vapor pressure, surface tension, thermal conductivity, flash point, lower heating value)
-        - ``mixture_correlations.py``: ``MixtureCorrelationsMixin`` with mass/mole fraction conversions and mixture correlations (e.g. density, viscosity, freeze point, flash point, heat of combustion, yield sooting index, derived cetane number)
+        - ``component_properties.py``: ``ComponentProperties`` with properties of each compound (critical properties, reference-only properties, GCM predictions, and molecular structure)
+        - ``component_correlations.py``: ``ComponentCorrelations`` with correlations for individual compound properties (e.g. density, viscosity, vapor pressure, surface tension, thermal conductivity, flash point, lower heating value)
+        - ``mixture_correlations.py``: ``MixtureCorrelations`` with mass/mole fraction conversions and mixture correlations (e.g. density, viscosity, freeze point, flash point, heat of combustion, yield sooting index, derived cetane number)
     - ``constants.py``: physical constants (Boltzmann, Avogadro)
     - ``convert.py``: temperature conversion functions and Lennard-Jones calculations
     - ``utility.py``: utility functions for mixing rules (arithmetic, geometric) and droplet calculations

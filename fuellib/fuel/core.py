@@ -15,9 +15,9 @@ from .._reference_data import (
     smiles_series_to_inchi,
 )
 from ..utils import Units, types
-from .component_correlations import ComponentCorrelationsMixin
-from .component_properties import ComponentPropertiesMixin
-from .mixture_correlations import MixtureCorrelationsMixin
+from .component_correlations import ComponentCorrelations
+from .component_properties import ComponentProperties
+from .mixture_correlations import MixtureCorrelations
 
 
 def _match_gc_to_ref(gcData: DataFrame, refData: DataFrame, refName: str) -> DataFrame:
@@ -68,17 +68,15 @@ def _match_gc_to_ref(gcData: DataFrame, refData: DataFrame, refName: str) -> Dat
     return refData.loc[refIdx.astype(int)].reset_index(drop=True)
 
 
-class Fuel(
-    MixtureCorrelationsMixin, ComponentCorrelationsMixin, ComponentPropertiesMixin
-):
+class Fuel(MixtureCorrelations, ComponentCorrelations, ComponentProperties):
     """Class for handling calculations of thermodynamic and mixture properties.
 
     The core class loads the GCxGC and reference data. Functionality is provided by:
 
-    * `ComponentPropertiesMixin`: properties of each compound (e.g. `Tc`, `MW`).
-    * `ComponentCorrelationsMixin`: temperature-dependent correlations for each
+    * `ComponentProperties`: properties of each compound (e.g. `Tc`, `MW`).
+    * `ComponentCorrelations`: temperature-dependent correlations for each
       compound (e.g. `density`, `psat`).
-    * `MixtureCorrelationsMixin`: composition conversions and mixture
+    * `MixtureCorrelations`: composition conversions and mixture
       correlations (e.g. `Y2X`, `mixture_density`).
     """
 

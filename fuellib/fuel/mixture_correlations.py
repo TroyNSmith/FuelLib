@@ -1,4 +1,4 @@
-"""Mixin providing mixture correlations and composition conversions for `Fuel`."""
+"""Mixture correlations and composition conversions for `Fuel`."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from scipy.optimize import curve_fit, root
 from .. import constants
 from ..utility import arithmetic
 from ..utils import Units, types
-from .component_correlations import ComponentCorrelationsMixin, _antoine_eq
+from .component_correlations import ComponentCorrelations, _antoine_eq
 
 
 def _liaw_chiu_flash_point(
@@ -77,8 +77,8 @@ def _liaw_chiu_flash_point(
     return sol.x[0]
 
 
-class MixtureCorrelationsMixin(ComponentCorrelationsMixin):
-    """Mixin for composition conversions and correlations of the fuel mixture."""
+class MixtureCorrelations(ComponentCorrelations):
+    """Composition conversions and correlations of a fuel mixture."""
 
     # Attributes provided by the core `Fuel` class.
     Y_0: types.Quantity1D
@@ -588,4 +588,4 @@ class MixtureCorrelationsMixin(ComponentCorrelationsMixin):
         return Units.Quantity(np.sum(vol / np.sum(vol) * dcn_i), "")
 
 
-__all__ = ["MixtureCorrelationsMixin"]
+__all__ = ["MixtureCorrelations"]
